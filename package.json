@@ -21,9 +21,9 @@
     "install": "^0.13.0",
     "lodash": "^4.17.21",
     "steam-totp": "^2.1.1",
-    "steam-tradeoffer-manager": "^2.10.3",
+    "steam-tradeoffer-manager": "^2.12.2",
     "steam-user": "^5.0.1",
-    "steamcommunity": "^3.42.0",
+    "steamcommunity": "^3.49.0",
     "system-sleep": "^1.3.7"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "npm run lint", 
+    "test": "npm run lint",
     "lint": "eslint . --ext .js --fix",
     "update": "npx -p npm-check-updates ncu -u && npm install"
   },
