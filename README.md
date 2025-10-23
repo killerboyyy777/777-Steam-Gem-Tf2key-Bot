@@ -1,3 +1,4 @@
+[![License](https://img.shields.io/github/license/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=License)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/blob/main/LICENSE)
 # 777 Steam Gem/TF2-Key Bot
 **Free Release** of my automated Steam Bot for trading **Gems (💎), TF2 Keys (🔑), Emotes, and Profile Backgrounds**.
 
