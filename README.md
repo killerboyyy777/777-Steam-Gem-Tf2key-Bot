@@ -59,6 +59,22 @@ Read the Instructions in the **"Tutorial"** Folder.
 
 -Will gem all Emotes and Backgrounds worth more then the configured Gem Value on Bot Start and once per Week
 
+***
+
+## ❤️ Donations / Support
+
+If you find this bot useful and would like to support the continued development and maintenance, you can send a small donation.
+
+Every contribution is highly appreciated!
+
+| Method | Details |
+| :--- | :--- |
+| **Steam Trade** | `https://steamcommunity.com/tradeoffer/new/?partner=1211192445&token=T9Hiu3Oz` |
+| **Litecoin (LTC)** | `ltc1qjr49nr028mcajlt7prmmnqnjh0552qjj90zdq4` |
+| **Monero (XMR)l** | `82oJRDdiSWWbem3HiYx7ZdDdiPkYQAW4LaGNHpNcJ9DCendQ3XcxHNYQiRMtfghYtSMmARPGqKe2ddSrhtjviTraEyGwgZ2` |
+
+***
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ## 📜License
