@@ -5,9 +5,9 @@ I am releasing this project for free simply to counteract the practice of sellin
 
 ---
 
-## 🚀 Usage
+## 🚀 Usage (Getting Started)
 
-To start and use the Bot follow these Steps:
+To start and use the Bot, follow these steps:
 
 ### 1. Installation
 1. Clone this Repository or Download the .zip.
@@ -15,49 +15,42 @@ To start and use the Bot follow these Steps:
 3. **Execute `install.bat`** (This will install all required node.js Dependencies.)
 
 ### 2. Configuration
-
 Read the Instructions in the **"Tutorial"** Folder.
 
+---
 
+## 🤖 Bot Commands & Automated Features
 
-###BASIC COMMANDS:
+### Basic Commands
 
+| Command | Description |
+| :--- | :--- |
+| `!Info` | Info about Owner. |
+| `!Price(s)` / `!Rate(s)` | Check Bot's Rates/Prices. |
+| `!Check` | Check how many 🔑s & 💎s you have to see what we have to offer you! |
 
-!Info ⮞ Info about Owner
+### Trading Commands
 
-!Price(s) ⮞ Check Bots Rates/Prices
+| Command | Syntax | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `!BuyTF` | `!BuyTF [Number of TF2 🔑s]` | Buy BOTS TF2 🔑s for YOUR 💎s. | ✅ Working |
+| `!SellTF` | `!SellTF [Number of TF2 🔑s]` | Sell YOUR TF2 🔑s for BOTS 💎s. | ✅ Working |
+| `!BuyCS` | `!BuyCS [Number of CS:GO 🔑s]` | Buy BOTS CS:GO 🔑s for YOUR 💎s. | ❌ OUTDATED (Steam Changes) |
+| `!SellCS` | `!SellCS [Number of CS:GO 🔑s]` | Sell YOUR CS:GO 🔑s for BOTS 💎s. | ❌ OUTDATED (Steam Changes) |
 
-!Rate(s) ⮞ Check Bots Rates/Prices
+### Swapping Commands
 
-!Check ⮞ Check how many 🔑s & 💎s you have to see what we have to offer you!
+| Command | Syntax | Swap Action | Status |
+| :--- | :--- | :--- | :--- |
+| `!SwapCS` | `!SwapCS [Number of CS:GO 🔑s]` | Swap YOUR CS:GO 🔑s for OUR TF2 🔑s. | ❌ OUTDATED (Steam Changes) |
+| `!SwapTF` | `!SwapTF [Number of TF2 🔑s]` | Swap YOUR TF2 🔑s for OUR CS:GO 🔑s. | ❌ OUTDATED (Steam Changes) |
 
+### Automated Features (Emotes/Backgrounds)
 
-###BUY / SELL COMMANDS:
+* Will accept Offers trading Emotes/Backgrounds for Gems (Buying and Selling) that Match or are better than the configured Value.
+* Will gem all Emotes and Backgrounds worth more than the configured Gem Value on Bot Start and once per Week.
 
-
-!BuyCS ⮞ [Number of CS:GO 🔑s] ⮞ Buy BOTS CS:GO 🔑s for YOUR 💎s (OUTDATED, NOT WORKING DUE TO STEAM CHANGES)
-
-!BuyTF ⮞ [Number of TF2 🔑s] ⮞ Buy BOTS TF2 🔑s for YOUR 💎s
-
-!SellCS ⮞ [Number of CS:GO 🔑s] ⮞ Sell YOUR CS:GO 🔑s for BOTS 💎s (OUTDATED, NOT WORKING DUE TO STEAM CHANGES)
-
-!SellTF ⮞ [Number of TF2 🔑s] ⮞ Sell YOUR TF2 🔑s for BOTS 💎s
-
-
-###SWAPPING COMMANDS:
-
-
-!SwapCS [Number of CS:GO 🔑s] ⮞ Swap YOUR CS:GO 🔑s for OUR TF2 🔑s (OUTDATED, NOT WORKING DUE TO STEAM CHANGES)
-
-!SwapTF [Number of TF2 🔑s] ⮞ Swap YOUR TF2 🔑s for OUR CS:GO 🔑s (OUTDATED, NOT WORKING DUE TO STEAM CHANGES)
-
-###EMOTES/BACKGROUNDS:
-
--Will accept Offers trading Emotes/Backgrounds for Gems (Buying and Selling) that Match or are better then the configured Value
-
--Will gem all Emotes and Backgrounds worth more then the configured Gem Value on Bot Start and once per Week
-
-***
+---
 
 ## ❤️ Donations / Support
 
@@ -69,13 +62,14 @@ Every contribution is highly appreciated!
 | :--- | :--- |
 | **Steam Trade** | `https://steamcommunity.com/tradeoffer/new/?partner=1211192445&token=T9Hiu3Oz` |
 | **Litecoin (LTC)** | `ltc1qjr49nr028mcajlt7prmmnqnjh0552qjj90zdq4` |
-| **Monero (XMR)l** | `82oJRDdiSWWbem3HiYx7ZdDdiPkYQAW4LaGNHpNcJ9DCendQ3XcxHNYQiRMtfghYtSMmARPGqKe2ddSrhtjviTraEyGwgZ2` |
+| **Monero (XMR)** | `82oJRDdiSWWbem3HiYx7ZdDdiPkYQAW4LaGNHpNcJ9DCendQ3XcxHNYQiRMtfghYtSMmARPGqKe2ddSrhtjviTraEyGwgZ2` |
 
-***
-
+---
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-## 📜License
-This project is licensed under the GNU General Public License v3.0 (GPLv3).  
-Based on work by **mfw** (https://steamcommunity.com/id/mfwBan).  
-Modifications © 2025 **killerboy777**(https://steamcommunity.com/id/klb777).
+## 📜 License
+
+This project is licensed under the GNU General Public License v3.0 (GPLv3).
+
+Based on work by **mfw** (https://steamcommunity.com/id/mfwBan).
+Modifications © 2025 **killerboy777** (https://steamcommunity.com/id/klb777).
