@@ -1,0 +1,33 @@
+# Configuration for Dependabot (saved as .github/dependabot.yml)
+# This file automates dependency updates for your Node.js project.
+
+version: 2
+updates:
+  # Enable version updates for npm dependencies
+  - package-ecosystem: "npm"
+    # Look for package.json and lock files in the repository root
+    directory: "/"
+    # Check the npm registry for updates every weekday
+    schedule:
+      interval: "daily"
+      # Dependabot will create a Pull Request for every new version or security update.
+
+    # Optional: Group related minor and patch updates into a single PR for less noise
+    groups:
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+      prod-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "production"
+
+
+    labels:
+      - "dependencies"
+      - "npm"
+
+
+    assignees:
+      - "killerboyyy777"
