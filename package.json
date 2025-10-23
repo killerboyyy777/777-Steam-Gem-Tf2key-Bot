@@ -18,10 +18,8 @@
   "homepage": "https://github.com/killerboyyy777/Steam-Gem-Key-Bot#readme",
   "dependencies": {
     "cheerio": "^1.1.2",
-    "forever": "^3.0.2",
     "install": "^0.13.0",
     "lodash": "^4.17.21",
-    "npm": "^10.5.2",
     "steam-totp": "^2.1.1",
     "steam-tradeoffer-manager": "^2.10.3",
     "steam-user": "^5.0.1",
