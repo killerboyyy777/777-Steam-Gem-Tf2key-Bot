@@ -1,0 +1,43 @@
+# This workflow ensures that every code change (push or pull request) is stable,
+# installs dependencies cleanly, and runs tests across supported Node.js versions.
+
+name: Node.js CI
+
+on:
+  push:
+    # Triggers on push to the primary branch
+    branches: [ "master" ]
+  pull_request:
+    # Triggers on pull requests targeting the primary branch
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Test the bot against the primary LTS versions
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        # You can add a third version like 16.x if you want broader legacy support.
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        # Caching dependencies speeds up subsequent builds
+        cache: 'npm'
+        
+    - name: Install Dependencies (Clean Install)
+      # 'npm ci' ensures an exact install from package-lock.json, ideal for CI
+      run: npm ci
+      
+    # The 'npm run build' step is removed as typical Node.js bots don't have a build step.
+    
+    - name: Run Tests
+      # Assuming you have a 'test' script defined in your package.json
+      run: npm test
