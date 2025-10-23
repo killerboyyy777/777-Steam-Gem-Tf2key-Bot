@@ -19,8 +19,6 @@ To start and use the Bot follow these Steps:
 Read the Instructions in the **"Tutorial"** Folder.
 
 
-##⚙️ Usage
-
 
 ###BASIC COMMANDS:
 
