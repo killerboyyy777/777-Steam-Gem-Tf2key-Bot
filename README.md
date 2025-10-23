@@ -1,9 +1,14 @@
-[![Node.js](https://img.shields.io/badge/Node.js-v22+-green?logo=node.js)](https://nodejs.org/)
-[![License](https://img.shields.io/github/license/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=License)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/blob/main/LICENSE)
+Steam-Gem-Key-Bot
+
+[![Node.js](https://img.shields.io/badge/Node.js-v20+-green?logo=node.js)](https://nodejs.org/)
+[![License](https://img.shields.io/github/license/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=License)](https://github.com/killerboyboy777/777-Steam-Gem-Tf2key-Bot/blob/main/LICENSE)
+[![GitHub Release Version](https://img.shields.io/github/v/release/killerboyyy777/777-Steam-Gem-Tf2key-Bot?label=Version&logo=github)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/releases)
+[![Price](https://img.shields.io/badge/Price-FREE-blue.svg)]()
+
 [![Last Commit](https://img.shields.io/github/last-commit/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=Updated)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/commits/main)
 [![GitHub Stars](https://img.shields.io/github/stars/killerboyyy777/777-Steam-Gem-Tf2key-Bot?style=social&label=Stars)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/stargazers)
-
-# 777 Steam Gem/TF2-Key Bot
+[![GitHub Forks](https://img.shields.io/github/forks/killerboyyy777/777-Steam-Gem-Tf2key-Bot?style=social&label=Forks&logo=github)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/network/members)
+[![Open Issues](https://img.shields.io/github/issues/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=Issues)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/issues)
 **Free Release** of my automated Steam Bot for trading **Gems (💎), TF2 Keys (🔑), Emotes, and Profile Backgrounds**.
 
 I am releasing this project for free simply to counteract the practice of selling similar bots at excessively high prices.
