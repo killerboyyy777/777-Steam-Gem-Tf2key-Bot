@@ -9,6 +9,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/killerboyyy777/777-Steam-Gem-Tf2key-Bot?style=social&label=Stars)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/killerboyyy777/777-Steam-Gem-Tf2key-Bot?style=social&label=Forks&logo=github)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/network/members)
 [![Open Issues](https://img.shields.io/github/issues/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=Issues)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/issues)
+
 **Free Release** of my automated Steam Bot for trading **Gems (💎), TF2 Keys (🔑), Emotes, and Profile Backgrounds**.
 
 I am releasing this project for free simply to counteract the practice of selling similar bots at excessively high prices.
