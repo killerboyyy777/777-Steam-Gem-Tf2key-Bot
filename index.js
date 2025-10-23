@@ -165,7 +165,7 @@ if (cluster.isWorker) {
         });
 
         // Throttle request rate
-        await new Promise((r) => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 1000));
 
         return Promise.resolve();
       }, Promise.resolve()); 
