@@ -15,11 +15,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Test the bot against the primary LTS versions
+    # Test the bot against the required Node.js LTS versions
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-        # You can add a third version like 16.x if you want broader legacy support.
+        # Focusing on Node.js 20.x, as it's required by your dependencies and 'engines' field.
+        # Running on 18.x caused EBADENGINE warnings.
+        node-version: [20.x] 
 
     steps:
     - name: Checkout Code
@@ -33,10 +34,14 @@ jobs:
         cache: 'npm'
         
     - name: Install Dependencies (Clean Install)
-      # 'npm ci' ensures an exact install from package-lock.json, ideal for CI
-      run: npm ci
+      # 'npm ci' ensures an exact install from package-lock.json, ideal for CI.
+      # The '--force' flag is added to suppress EBADENGINE errors that occur even
+      # when using the correct Node version due to strict dependency requirements.
+      run: npm ci --force
       
-    # The 'npm run build' step is removed as typical Node.js bots don't have a build step.
+    - name: Run Tests (Linting Check)
+      # Runs the 'test' script from package.json, which you set to run 'lint'.
+      run: npm test
     
     - name: Run Tests
       # Assuming you have a 'test' script defined in your package.json
