@@ -4,7 +4,7 @@
 
 *********************************
 
-double click start.bat - this will start the bot while keeping the console open (but bot may crash and not restart itself) -> Stop the bot by closing start.bat
+double click start.bat - this will start the bot while keeping the console open -> Stop the bot by closing start.bat
 
 
 * If you want to make changes in the config (for example card rates), stop the bot, then go to config and make whatever changes you want, then start the bot again. 
