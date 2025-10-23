@@ -5,10 +5,10 @@
 // 
 // Modifications and maintenance by killerboyyy777 (https://steamcommunity.com/id/klb777)
 // Changes include:
-//   - Improved API communication
-//   - AutoGem weekly conversion feature (before only config value existed)
-//   - Updated profit tracking system
-//   - Compatibility fixes and logging improvements
+//    - Enhanced API communication
+//    - Implemented AutoGem weekly conversion feature (previously only a config value)
+//    - Updated profit tracking system
+//    - Compatibility fixes and improved logging
 // © 2025 killerboy777 – Licensed under the same GPLv3
 // -------------------------------------------------------------
 
@@ -97,3 +97,4 @@ module.exports = {
 	"Prisma Case Key"
 	]
 }
+
