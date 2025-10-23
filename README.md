@@ -1,7 +1,8 @@
+[![Node.js](https://img.shields.io/badge/Node.js-v22+-green?logo=node.js)](https://nodejs.org/)
 [![License](https://img.shields.io/github/license/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=License)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/blob/main/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/killerboyyy777/777-Steam-Gem-Tf2key-Bot.svg?label=Updated)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/commits/main)
 [![GitHub Stars](https://img.shields.io/github/stars/killerboyyy777/777-Steam-Gem-Tf2key-Bot?style=social&label=Stars)](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/stargazers)
-[![Node.js](https://img.shields.io/badge/Node.js-v22+-green?logo=node.js)](https://nodejs.org/)
+
 # 777 Steam Gem/TF2-Key Bot
 **Free Release** of my automated Steam Bot for trading **Gems (💎), TF2 Keys (🔑), Emotes, and Profile Backgrounds**.
 
