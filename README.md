@@ -1,4 +1,4 @@
-# Steam-Gem-Key-Bot
+# 777 Steam Gem/TF2-Key Bot
 **Free Release** of my automated Steam Bot for trading **Gems (💎), TF2 Keys (🔑), Emotes, and Profile Backgrounds**.
 
 I am releasing this project for free simply to counteract the practice of selling similar bots at excessively high prices.
