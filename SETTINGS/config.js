@@ -31,14 +31,6 @@ module.exports = {
 
     Rates: { 
 		
-		Key_Swaps:{
-			// CS:GO/TF2 Swap rates (disabled/empty)
-			CS_To_TF2: [0,0], 
-			TF2_To_CS: [0,0], 
-				
-			Max_Swap: 0 // users can only swap up to X keys at a time
-		},
-		
 		// Buy Rates (Bot buys keys/items from the user)
 		BUY:{ 
 			Gems_To_TF2_Rate:4200, // User gives us X Gems for X of OUR TF2 Keys
