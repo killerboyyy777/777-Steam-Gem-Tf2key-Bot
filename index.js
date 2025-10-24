@@ -19,8 +19,7 @@ const SteamTotp = require('steam-totp');
 const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamCommunity = require('steamcommunity');
 const sleep = require('system-sleep');
-const fs = require('fs');
-const CONFIG = require('./SETTINGS/config.js');
+const CONFIG = require('./SETTINGS/config'); // FIX: Removed .js extension and unused fs import
 
 // Cluster setup for process resilience
 if (cluster.isMaster) {
@@ -47,45 +46,52 @@ if (cluster.isWorker) {
   const community = new SteamCommunity();
 
   // ----------------------------------------------------------
-  // CORE FUNCTIONS (HOISTED FOR ESLINT)
+  // CORE FUNCTIONS (HOISTED AND CONVERTED TO CONST EXPRESSIONS FOR ESLINT)
   // ----------------------------------------------------------
 
   // Get current time for log timestamps
-  function getTime() {
+  const getTime = () => {
     const time = new Date();
     const hours = String(time.getHours()).padStart(2, '0');
     const minutes = String(time.getMinutes()).padStart(2, '0');
     const seconds = String(time.getSeconds()).padStart(2, '0');
     return `${hours}:${minutes}:${seconds}`;
-  }
+  };
 
   // Custom logging function (kept for debug/info messages)
-  function log(...args) {
+  const log = (...args) => {
     // eslint-disable-next-line no-console
     console.log(`[${getTime()}]`, ...args);
-  }
+  };
 
-  function logError(...args) {
+  const logError = (...args) => {
     // eslint-disable-next-line no-console
     console.error(`[${getTime()}] [ERROR]`, ...args);
-  }
+  };
 
   // Helper functions (placeholders)
-  async function RefreshInventory() {
+  // eslint-disable-next-line no-unused-vars
+  const RefreshInventory = async () => {
     // Logic to refresh inventory details
-  }
-  function CommentUser(user) {
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const CommentUser = (user) => {
     // Logic to post a comment on user's profile
-  }
-  async function SellBgsAndEmotes(offer) {
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const SellBgsAndEmotes = async (offer) => {
     // Logic for selling the bot's Backgrounds/Emotes for Gems
-  }
-  async function BuyBgsAndEmotes(offer) {
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const BuyBgsAndEmotes = async (offer) => {
     // Logic for buying user's Backgrounds/Emotes for Gems
-  }
+  };
 
   // Converts unwanted items to gems based on the Convert_To_Gems config
-  async function autoGemItems() {
+  const autoGemItems = async () => {
     try {
       log('[AutoGem] Checking inventory for items to convert...');
 
@@ -182,10 +188,10 @@ if (cluster.isWorker) {
     } catch (err) {
       logError('[AutoGem] Error:', err.message);
     }
-  }
+  };
 
   // Processes incoming trade offers
-  function ProcessTradeOffer(offer) {
+  const ProcessTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
     offer.getUserDetails((error) => {
       if (error) {
@@ -270,7 +276,7 @@ if (cluster.isWorker) {
         return null;
       });
     });
-  }
+  };
 
   // ----------------------------------------------------------
   // EVENT LISTENERS AND MAIN LOGIC
@@ -299,7 +305,7 @@ if (cluster.isWorker) {
   }, 1000);
 
   // Initial console cleanup and header (DEBUG/LICENSE)
-  // console.clear() entfernt, um 'unexpected console statement' Fehler zu beheben.
+  // console.clear() removed to fix 'unexpected console statement' error.
   log('\x1b[32m///////////////////////////////////////////////////////////////////////////\x1b[0m');
   log('\x1b[31mCopyright (C) 2025 killerboyyy777\x1b[0m');
   log('\x1b[31mhttps://steamcommunity.com/id/klb777\x1b[0m');
@@ -485,7 +491,7 @@ if (cluster.isWorker) {
             return null; // Stop processing
 
           } else if (MSG.toUpperCase() === '!PROFIT') {
-            client.chatMessage(SENDER, 'Berechne Profit... (lade Inventare)');
+            client.chatMessage(SENDER, 'Calculating profit... (loading inventories)');
             let myGems = 0;
             let myTF2Keys = 0;
 
@@ -493,7 +499,7 @@ if (cluster.isWorker) {
             manager.getInventoryContents(753, 6, true, (errGems, invGems) => {
               if (errGems) {
                 logError('[!PROFIT] Error loading gem inventory:', errGems);
-                client.chatMessage(SENDER, 'Fehler beim Laden des Gem-Inventars.');
+                client.chatMessage(SENDER, 'Error loading gem inventory.');
                 return;
               }
               const MyGems = invGems.filter((gem) => gem.name === 'Gems');
@@ -506,7 +512,7 @@ if (cluster.isWorker) {
               manager.getInventoryContents(440, 2, true, (errKeys, invKeys) => {
                 if (errKeys) {
                   logError('[!PROFIT] Error loading TF2 inventory:', errKeys);
-                  client.chatMessage(SENDER, 'Fehler beim Laden des TF2-Key-Inventars.');
+                  client.chatMessage(SENDER, 'Error loading TF2 key inventory.');
                   return;
                 }
 
@@ -518,7 +524,7 @@ if (cluster.isWorker) {
                 }
 
                 // 3. Send Report
-                client.chatMessage(SENDER, `Aktueller Bestand:\r\n- Gems: ${myGems}\r\n- TF2 Keys: ${myTF2Keys}`);
+                client.chatMessage(SENDER, `Current stock:\r\n- Gems: ${myGems}\r\n- TF2 Keys: ${myTF2Keys}`);
               });
             });
             return null; // Stop processing
@@ -527,16 +533,16 @@ if (cluster.isWorker) {
             const idToBlock = MSG.substring(7).trim();
             if (SID64REGEX.test(idToBlock)) {
               if (CONFIG.Owner.includes(idToBlock)) { // Used .includes()
-                  client.chatMessage(SENDER, 'Ein Admin kann nicht geblockt werden.');
+                  client.chatMessage(SENDER, 'An admin cannot be blocked.');
               } else if (CONFIG.Ignore_Msgs.includes(idToBlock)) { // Used .includes()
-                client.chatMessage(SENDER, `Benutzer ${idToBlock} ist bereits geblockt.`);
+                client.chatMessage(SENDER, `User ${idToBlock} is already blocked.`);
               } else {
                 CONFIG.Ignore_Msgs.push(idToBlock); // Add to in-memory config
-                client.chatMessage(SENDER, `Benutzer ${idToBlock} wurde für diese Sitzung geblockt.`);
-                log(`[Admin] Benutzer ${idToBlock} wurde von ${steamID64} geblockt.`);
+                client.chatMessage(SENDER, `User ${idToBlock} has been blocked for this session.`);
+                log(`[Admin] User ${idToBlock} was blocked by ${steamID64}.`);
               }
             } else {
-              client.chatMessage(SENDER, 'Ungültiges SteamID64 Format. Benutze !Block [SteamID64]');
+              client.chatMessage(SENDER, 'Invalid SteamID64 format. Use !Block [SteamID64]');
             }
             return null; // Stop processing
 
@@ -546,27 +552,27 @@ if (cluster.isWorker) {
               const index = CONFIG.Ignore_Msgs.indexOf(idToUnblock);
               if (index > -1) {
                 CONFIG.Ignore_Msgs.splice(index, 1); // Remove from array
-                client.chatMessage(SENDER, `Benutzer ${idToUnblock} wurde entblockt.`);
-                log(`[Admin] Benutzer ${idToUnblock} wurde von ${steamID64} entblockt.`);
+                client.chatMessage(SENDER, `User ${idToUnblock} has been unblocked.`);
+                log(`[Admin] User ${idToUnblock} was unblocked by ${steamID64}.`);
               } else {
-                client.chatMessage(SENDER, `Benutzer ${idToUnblock} wurde nicht in der Block-Liste gefunden.`);
+                client.chatMessage(SENDER, `User ${idToUnblock} was not found in the block list.`);
               }
             } else {
-              client.chatMessage(SENDER, 'Ungültiges SteamID64 Format. Benutze !Unblock [SteamID64]');
+              client.chatMessage(SENDER, 'Invalid SteamID64 format. Use !Unblock [SteamID64]');
             }
             return null; // Stop processing
 
           } else if (MSG.toUpperCase().startsWith('!BROADCAST ')) {
             const broadcastMsg = MSG.substring(11).trim();
             if (broadcastMsg.length === 0) {
-              client.chatMessage(SENDER, 'Bitte gib eine Nachricht an. Benutze !Broadcast [Nachricht]');
+              client.chatMessage(SENDER, 'Please provide a message. Use !Broadcast [Message]');
               return null;
             }
 
             let friendCount = 0;
             const friendSteamIDs = Object.keys(client.myFriends);
 
-            log(`[Admin] Starte Broadcast von ${steamID64}...`);
+            log(`[Admin] Starting Broadcast from ${steamID64}...`);
             // Renamed 'index' to 'idx' to avoid shadowing in a broader scope
             friendSteamIDs.forEach((friendID, idx) => {
               // Send only to actual friends (relation 3)
@@ -579,8 +585,8 @@ if (cluster.isWorker) {
               }
             });
 
-            client.chatMessage(SENDER, `Broadcast wird an ${friendCount} Freunde gesendet.`);
-            log(`[Admin] Broadcast gesendet an ${friendCount} Freunde: "${broadcastMsg}"`);
+            client.chatMessage(SENDER, `Broadcast sent to ${friendCount} friends.`);
+            log(`[Admin] Broadcast sent to ${friendCount} friends: "${broadcastMsg}"`);
             return null; // Stop processing
           }
         } // --- End Admin Commands ---
@@ -662,15 +668,14 @@ if (cluster.isWorker) {
                   if (
                     Math.floor(theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate) > 0
                   ) {
-                    gemsMsg = `- I can give you ${Math.floor(
+                    const buyableKeys = Math.floor(
                       theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate
-                    )} TF2 Keys for Your ${
-                      Math.floor(
-                        theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate
-                      ) * CONFIG.Rates.BUY.Gems_To_TF2_Rate
-                      } Gems (Use !BuyTF ${Math.floor(
-                        theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate
-                      )})`;
+                    );
+                    const gemsForBuy = buyableKeys * CONFIG.Rates.BUY.Gems_To_TF2_Rate;
+
+                    // FIX: Broken up long line (Line 752 or near it)
+                    gemsMsg = `- I can give you ${buyableKeys} TF2 Keys for Your ${gemsForBuy} Gems `
+                      + `(Use !BuyTF ${buyableKeys})`;
                   }
 
                   client.chatMessage(
@@ -802,16 +807,15 @@ if (cluster.isWorker) {
                       return null;
                     }
                     // Not enough gems (with suggestion for partial trade)
-                    if (
-                      Math.floor(gem.amount / CONFIG.Rates.SELL.TF2_To_Gems) > 0
-                    ) {
+                    const sellableKeys = Math.floor(
+                      gem.amount / CONFIG.Rates.SELL.TF2_To_Gems
+                    );
+
+                    if (sellableKeys > 0) {
+                      // FIX: Broken up long line (Line 752 or near it)
                       client.chatMessage(
                         SENDER,
-                        `Sorry, I don't have enough Gems to make this trade: ${
-                        gem.amount
-                        } / ${amountOfGems}\r\nTip: Try using !SellTF ${Math.floor(
-                          gem.amount / CONFIG.Rates.SELL.TF2_To_Gems
-                        )}`
+                        `Sorry, I don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}\r\nTip: Try using !SellTF ${sellableKeys}`
                       );
                     } else {
                       client.chatMessage(
@@ -963,18 +967,14 @@ if (cluster.isWorker) {
                         return null;
                       }
                       // Not enough gems (with suggestion for partial trade)
-                      if (
-                        Math.floor(
-                          gem.amount / CONFIG.Rates.BUY.Gems_To_TF2_Rate
-                        ) > 0
-                      ) {
+                      const buyableKeys = Math.floor(
+                        gem.amount / CONFIG.Rates.BUY.Gems_To_TF2_Rate
+                      );
+                      if (buyableKeys > 0) {
+                        // FIX: Broken up long line (Line 913 or near it)
                         client.chatMessage(
                           SENDER,
-                          `You don't have enough Gems to make this trade: ${
-                          gem.amount
-                          } / ${amountOfGems}\r\nTip: Try using !BuyTF ${Math.floor(
-                            gem.amount / CONFIG.Rates.BUY.Gems_To_TF2_Rate
-                          )}`
+                          `You don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}\r\nTip: Try using !BuyTF ${buyableKeys}`
                         );
                       } else {
                         client.chatMessage(
