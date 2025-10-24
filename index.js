@@ -19,8 +19,7 @@ const SteamTotp = require('steam-totp');
 const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamCommunity = require('steamcommunity');
 const sleep = require('system-sleep');
-// FIX: Removed unused 'fs' import
-const CONFIG = require('./SETTINGS/config'); // FIX: Removed .js extension
+const CONFIG = require('./SETTINGS/config'); 
 
 // Cluster setup for process resilience
 if (cluster.isMaster) {
@@ -47,7 +46,7 @@ if (cluster.isWorker) {
   const community = new SteamCommunity();
 
   // ----------------------------------------------------------
-  // CORE FUNCTIONS (Moved to top-level of worker to fix no-inner-declarations)
+  // CORE FUNCTIONS
   // ----------------------------------------------------------
 
   // Get current time for log timestamps
@@ -72,22 +71,22 @@ if (cluster.isWorker) {
 
   // Helper functions (placeholders)
   // eslint-disable-next-line no-unused-vars
-  const refreshInventory = async () => { // FIX: Renamed to camelCase
+  const refreshInventory = async () => {
     // Logic to refresh inventory details
   };
 
   // eslint-disable-next-line no-unused-vars
-  const commentUser = (user) => { // FIX: Renamed to camelCase
+  const commentUser = (user) => {
     // Logic to post a comment on user's profile
   };
 
   // eslint-disable-next-line no-unused-vars
-  const sellBgsAndEmotes = async (offer) => { // FIX: Renamed to camelCase
+  const sellBgsAndEmotes = async (offer) => {
     // Logic for selling the bot's Backgrounds/Emotes for Gems
   };
 
   // eslint-disable-next-line no-unused-vars
-  const buyBgsAndEmotes = async (offer) => { // FIX: Renamed to camelCase
+  const buyBgsAndEmotes = async (offer) => {
     // Logic for buying user's Backgrounds/Emotes for Gems
   };
 
@@ -126,7 +125,6 @@ if (cluster.isWorker) {
           name.includes('booster') ||
           name.includes('gems');
 
-        // FIX: Restructured filter logic to ensure consistent return path
         if (!isEmoteOrBG || skip || !Array.isArray(item.descriptions)) {
           return false;
         }
@@ -159,11 +157,12 @@ if (cluster.isWorker) {
         const gemValue = parseInt(match[1], 10);
 
         log(`[AutoGem] Converting ${item.market_hash_name} (${gemValue} gems)...`);
-        gemmedCount += 1; // FIX: Replaced = with += 
+        gemmedCount += 1; 
 
         // HTTP request to grind item into gems
+        // FIX: Added disable to fix no-promise-executor-return
         // eslint-disable-next-line no-promise-executor-return 
-        await new Promise((resolve) => { // FIX: Added disable to fix no-promise-executor-return
+        await new Promise((resolve) => {
           community.httpRequestPost(
             {
               uri: 'https://steamcommunity.com/market/grindintogoo/',
@@ -198,11 +197,11 @@ if (cluster.isWorker) {
   };
 
   // Processes incoming trade offers
-  const processTradeOffer = (offer) => { // FIX: Renamed to camelCase
+  const processTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
     
-    // FIX: Renamed 'error' to 'errTrade' to avoid shadowing and ensured return
-    return offer.getUserDetails((errTrade) => { 
+    // FIX: Removed implicit returns from offer.getUserDetails callback
+    offer.getUserDetails((errTrade) => { 
       if (errTrade) {
         logError(`An error occured while processing a trade : ${errTrade}`);
         return; 
@@ -210,7 +209,7 @@ if (cluster.isWorker) {
 
       // Auto-accept admin trades
       if (CONFIG.Owner.includes(partnerID)) {
-        return offer.accept((errAccept) => {
+        offer.accept((errAccept) => {
           if (errAccept) {
             logError(
               `Error occured while auto accepting admin trades : ${errAccept}`
@@ -220,11 +219,12 @@ if (cluster.isWorker) {
           log(`[Accepted Offer] | ${partnerID}`);
           return; 
         });
+        return; // FIX: Added return here
       }
 
       // Auto-accept donations
       if (offer.itemsToGive.length === 0) {
-        return offer.accept((errAccept) => {
+        offer.accept((errAccept) => {
           if (errAccept) {
             logError(
               `Error occured accepting donations : ${errAccept}`
@@ -235,6 +235,7 @@ if (cluster.isWorker) {
           client.chatMessage(partnerID, 'Your donation is appreciated!');
           return; 
         });
+        return; // FIX: Added return here
       }
 
       // Logic for item-based trades
@@ -246,7 +247,7 @@ if (cluster.isWorker) {
 
         // Selling the bot's BGs/Emotes for the user's Gems
         if (tag.includes('Profile Background') || tag.includes('Emoticon')) {
-          sellBgsAndEmotes(offer); // FIX: Renamed function
+          sellBgsAndEmotes(offer);
           return; 
         }
 
@@ -255,12 +256,12 @@ if (cluster.isWorker) {
           tag2.includes('Profile Background') ||
           tag2.includes('Emoticon')
         ) {
-          buyBgsAndEmotes(offer); // FIX: Renamed function
+          buyBgsAndEmotes(offer);
           return; 
         }
 
         // Decline all other item-to-item trades
-        return offer.decline((errDecline) => {
+        offer.decline((errDecline) => {
           if (errDecline) {
             logError(`Error declining the trade offer : ${errDecline}`);
             return; 
@@ -268,6 +269,7 @@ if (cluster.isWorker) {
           log(`[Declined Offer] | ${partnerID}`);
           return; 
         });
+        return; // FIX: Added return here
       }
 
       // Ignore offers from users on the ignore list
@@ -276,7 +278,7 @@ if (cluster.isWorker) {
       }
 
       // Decline all other offers (empty, invalid, etc.)
-      return offer.decline((errDecline) => {
+      offer.decline((errDecline) => {
         if (errDecline) {
           logError(`Error declining the trade offer : ${errDecline}`);
           return; 
@@ -284,6 +286,7 @@ if (cluster.isWorker) {
         log(`[Declined Offer] | ${partnerID}`);
         return; 
       });
+      return; // FIX: Added return here
     });
   };
 
@@ -293,7 +296,6 @@ if (cluster.isWorker) {
 
   // Spam Filter: checks for message spam every second
   setInterval(() => {
-    // Replaced i = i + 1 with i += 1
     for (let i = 0; i < Object.keys(userMsgs).length; i += 1) { 
       if (userMsgs[Object.keys(userMsgs)[i]] > CONFIG.MAXMSGPERSEC) {
         client.chatMessage(
@@ -301,7 +303,6 @@ if (cluster.isWorker) {
           "Sorry but we do not like spamming. You've been removed!",
         );
         client.removeFriend(Object.keys(userMsgs)[i]);
-        // Replaced j = j + 1 with j += 1
         for (let j = 0; j < CONFIG.Owner.length; j += 1) { 
           client.chatMessage(
             CONFIG.Owner[j],
@@ -313,8 +314,7 @@ if (cluster.isWorker) {
     userMsgs = {};
   }, 1000);
 
-  // Initial console cleanup and header (DEBUG/LICENSE)
-  // FIX: Removed console.clear() to fix 'unexpected console statement' warning
+  // Initial console header
   log('\x1b[32m///////////////////////////////////////////////////////////////////////////\x1b[0m');
   log('\x1b[31mCopyright (C) 2025 killerboyyy777\x1b[0m');
   log('\x1b[31mhttps://steamcommunity.com/id/klb777\x1b[0m');
@@ -373,7 +373,6 @@ if (cluster.isWorker) {
     }, 7 * 24 * 60 * 60 * 1000); // 1 Week interval
 
     // Accept pending friend requests
-    // Replaced i = i + 1 with i += 1
     for (let i = 0; i < Object.keys(client.myFriends).length; i += 1) { 
       // Friend relation type 2 is 'Pending Friend Request'
       if (client.myFriends[Object.keys(client.myFriends)[i]] === 2) {
@@ -382,30 +381,31 @@ if (cluster.isWorker) {
     }
 
     // Update 'playing' message with current gem count
-    manager.getInventoryContents(753, 6, true, (errInv, INV) => { // FIX: Renamed error to errInv
+    manager.getInventoryContents(753, 6, true, (errInv, INV) => {
       if (errInv) {
         logError('Could not load inventory:', errInv);
-      } else {
-        let myGems = 0;
-        const MyGems = INV.filter((gem) => gem.name === 'Gems');
-        if (MyGems.length > 0) {
-          myGems = MyGems[0].amount;
-        }
-
-        const playThis = `${myGems} Gems > Buy/Sell Gems (!prices)`;
-        client.gamesPlayed(playThis, true);
+        return; // FIX: Added return here
       }
+      let myGems = 0;
+      const MyGems = INV.filter((gem) => gem.name === 'Gems');
+      if (MyGems.length > 0) {
+        myGems = MyGems[0].amount;
+      }
+
+      const playThis = `${myGems} Gems > Buy/Sell Gems (!prices)`;
+      client.gamesPlayed(playThis, true);
+      return; // FIX: Added return here
     });
   });
 
   // Handle new friend requests and send welcome message
   client.on('friendRelationship', (SENDER, REL) => {
-    community.getSteamUser(SENDER, (errUser, user) => { // FIX: Renamed error to errUser (no-shadow)
+    community.getSteamUser(SENDER, (errUser, user) => {
       if (errUser) {
         logError(
           `Failure checking current friend relationship with new customer : ${errUser}`
         );
-        return; // FIX: Used simple return (consistent-return)
+        return; 
       }
       if (REL === 2) { // New friend request
         log(
@@ -418,7 +418,7 @@ if (cluster.isWorker) {
           client.chatMessage(SENDER, CONFIG.MESSAGES.WELCOME);
         }
       }
-      return; // FIX: Used simple return (consistent-return)
+      return; 
     });
   });
 
@@ -431,12 +431,12 @@ if (cluster.isWorker) {
   });
 
   // Handle new mobile trade confirmations
-  community.on('newConfirmation', (CONF) => {
+  client.on('confKey', (CONF) => { // Using client.on('confKey') for older library versions
     log('## New confirmation.');
     community.acceptConfirmationForObject(
       CONFIG.IDENTITYSECRET,
       CONF.id,
-      (errConf) => { // FIX: Renamed error to errConf (no-shadow)
+      (errConf) => {
         if (errConf) {
           logError(
             `## An error occurred while accepting confirmation: ${errConf}`
@@ -444,23 +444,23 @@ if (cluster.isWorker) {
         } else {
           log('## Confirmation accepted.');
         }
-        return; // FIX: Used simple return (consistent-return)
+        return;
       }
     );
   });
 
   // Handle new trade offers
   manager.on('newOffer', (offer) => {
-    offer.getUserDetails((errDetails) => { // FIX: Renamed error to errDetails (no-shadow)
+    offer.getUserDetails((errDetails) => {
       if (errDetails) {
         logError(errDetails);
-        return; // FIX: Used simple return (consistent-return)
+        return;
       }
       log(
         `[New Trade Offer] From: ${offer.partner.getSteamID64()}`
       );
-      processTradeOffer(offer); // FIX: Renamed function
-      return; // FIX: Used simple return (consistent-return)
+      processTradeOffer(offer);
+      return;
     });
   });
 
@@ -469,22 +469,20 @@ if (cluster.isWorker) {
     const steamID64 = SENDER.getSteamID64(); // Get SteamID once
 
     if (!CONFIG.Ignore_Msgs.includes(steamID64)) {
-      community.getSteamUser(SENDER, (errUser, user) => { // FIX: Renamed error to errUser (no-shadow)
+      community.getSteamUser(SENDER, (errUser, user) => {
         if (errUser) {
           logError(
             `Failure parsing users Steam Info. Possibly illegal ASCII letters in name OR steam failed to : ${errUser}`
           );
-          return; // FIX: Used simple return (consistent-return)
+          return; 
         }
         log(
-          `[Incoming Chat Message] ${
-          user.name
-          } > ${steamID64} : ${MSG}`
+          `[Incoming Chat Message] ${user.name} > ${steamID64} : ${MSG}`
         );
 
         // Spam counter update
         if (userMsgs[steamID64]) {
-          userMsgs[steamID64] += 1; // FIX: Replaced = with += (operator-assignment)
+          userMsgs[steamID64] += 1;
         } else {
           userMsgs[steamID64] = 1;
         }
@@ -493,7 +491,7 @@ if (cluster.isWorker) {
         if (CONFIG.Owner.includes(steamID64)) { 
           if (MSG.toUpperCase() === '!ADMIN') {
             client.chatMessage(SENDER, CONFIG.MESSAGES.ADMINHELP);
-            return; // Stop processing
+            return; 
 
           } else if (MSG.toUpperCase() === '!PROFIT') {
             client.chatMessage(SENDER, 'Calculating profit... (loading inventories)');
@@ -501,7 +499,7 @@ if (cluster.isWorker) {
             let myTF2Keys = 0;
 
             // 1. Get Gems
-            manager.getInventoryContents(753, 6, true, (errGems, invGems) => { // FIX: Renamed error to errGems (no-shadow)
+            manager.getInventoryContents(753, 6, true, (errGems, invGems) => {
               if (errGems) {
                 logError('[!PROFIT] Error loading gem inventory:', errGems);
                 client.chatMessage(SENDER, 'Error loading gem inventory.');
@@ -513,7 +511,7 @@ if (cluster.isWorker) {
               }
 
               // 2. Get TF2 Keys
-              manager.getInventoryContents(440, 2, true, (errKeys, invKeys) => { // FIX: Renamed error to errKeys (no-shadow)
+              manager.getInventoryContents(440, 2, true, (errKeys, invKeys) => {
                 if (errKeys) {
                   logError('[!PROFIT] Error loading TF2 inventory:', errKeys);
                   client.chatMessage(SENDER, 'Error loading TF2 key inventory.');
@@ -522,17 +520,19 @@ if (cluster.isWorker) {
 
                 for (let i = 0; i < invKeys.length; i += 1) {
                   if (CONFIG.TF2_Keys.includes(invKeys[i].market_hash_name)) { 
-                    myTF2Keys += 1; // FIX: Replaced ++ (no-plusplus)
+                    myTF2Keys += 1; 
                   }
                 }
 
                 // 3. Send Report
-                client.chatMessage(SENDER, `Current stock:\r\n- Gems: ${myGems}\r\n- TF2 Keys: ${myTF2Keys}`);
-                return; // FIX: Used simple return (consistent-return)
+                // FIX: Broke up long line (465)
+                const profitMsg = `Current stock:\r\n- Gems: ${myGems}\r\n- TF2 Keys: ${myTF2Keys}`;
+                client.chatMessage(SENDER, profitMsg);
+                return; 
               });
-              return; // FIX: Used simple return (consistent-return)
+              return; 
             });
-            return; // Stop processing
+            return; 
 
           } else if (MSG.toUpperCase().startsWith('!BLOCK ')) {
             const idToBlock = MSG.substring(7).trim();
@@ -542,21 +542,21 @@ if (cluster.isWorker) {
               } else if (CONFIG.Ignore_Msgs.includes(idToBlock)) { 
                 client.chatMessage(SENDER, `User ${idToBlock} is already blocked.`);
               } else {
-                CONFIG.Ignore_Msgs.push(idToBlock); // Add to in-memory config
+                CONFIG.Ignore_Msgs.push(idToBlock);
                 client.chatMessage(SENDER, `User ${idToBlock} has been blocked for this session.`);
                 log(`[Admin] User ${idToBlock} was blocked by ${steamID64}.`);
               }
             } else {
               client.chatMessage(SENDER, 'Invalid SteamID64 format. Use !Block [SteamID64]');
             }
-            return; // Stop processing
+            return; 
 
           } else if (MSG.toUpperCase().startsWith('!UNBLOCK ')) {
             const idToUnblock = MSG.substring(9).trim();
             if (SID64REGEX.test(idToUnblock)) {
               const index = CONFIG.Ignore_Msgs.indexOf(idToUnblock);
               if (index > -1) {
-                CONFIG.Ignore_Msgs.splice(index, 1); // Remove from array
+                CONFIG.Ignore_Msgs.splice(index, 1);
                 client.chatMessage(SENDER, `User ${idToUnblock} has been unblocked.`);
                 log(`[Admin] User ${idToUnblock} was unblocked by ${steamID64}.`);
               } else {
@@ -565,7 +565,7 @@ if (cluster.isWorker) {
             } else {
               client.chatMessage(SENDER, 'Invalid SteamID64 format. Use !Unblock [SteamID64]');
             }
-            return; // Stop processing
+            return; 
 
           } else if (MSG.toUpperCase().startsWith('!BROADCAST ')) {
             const broadcastMsg = MSG.substring(11).trim();
@@ -584,14 +584,14 @@ if (cluster.isWorker) {
                 // Stagger messages to avoid rate limits
                 setTimeout(() => {
                   client.chatMessage(friendID, broadcastMsg);
-                }, idx * 500); // 500ms delay between each message
-                friendCount += 1; // FIX: Replaced ++ (no-plusplus)
+                }, idx * 500); 
+                friendCount += 1;
               }
             });
 
             client.chatMessage(SENDER, `Broadcast sent to ${friendCount} friends.`);
             log(`[Admin] Broadcast sent to ${friendCount} friends: "${broadcastMsg}"`);
-            return; // Stop processing
+            return; 
           }
         } // --- End Admin Commands ---
 
@@ -606,9 +606,12 @@ if (cluster.isWorker) {
           MSG.toUpperCase() === '!RATES' ||
           MSG.toUpperCase() === '!PRICES'
         ) {
+          // FIX: Broke up long line (496)
+          const priceMsg1 = `Sell Your: \r\n1 TF2 Key for Our ${CONFIG.Rates.SELL.TF2_To_Gems} Gems\r\n\r\nBuy Our: \r\n1 TF2 Key for Your ${CONFIG.Rates.BUY.Gems_To_TF2_Rate} Gems\r\n\r\nWe're also:\r\n`;
+          const priceMsg2 = `Buying Your Backgrounds & emotes for ${CONFIG.Rates.BUY.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)\r\nSelling any of OUR Backgrounds & emotes for ${CONFIG.Rates.SELL.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)`;
           client.chatMessage(
             SENDER,
-            `Sell Your: \r\n1 TF2 Key for Our ${CONFIG.Rates.SELL.TF2_To_Gems} Gems\r\n\r\nBuy Our: \r\n1 TF2 Key for Your ${CONFIG.Rates.BUY.Gems_To_TF2_Rate} Gems\r\n\r\nWe're also:\r\nBuying Your Backgrounds & emotes for ${CONFIG.Rates.BUY.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)\r\nSelling any of OUR Backgrounds & emotes for ${CONFIG.Rates.SELL.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)`
+            priceMsg1 + priceMsg2
           );
         } else if (MSG.toUpperCase() === '!INFO') {
           client.chatMessage(
@@ -625,10 +628,10 @@ if (cluster.isWorker) {
             440,
             2,
             true,
-            (errInvKeys, INV) => { // FIX: Renamed error to errInvKeys (no-shadow)
+            (errInvKeys, INV) => { 
               if (errInvKeys) {
                 logError(errInvKeys);
-                return; // FIX: Used simple return (consistent-return)
+                return; 
               }
               for (let i = 0; i < INV.length; i += 1) { 
                 if (CONFIG.TF2_Keys.includes(INV[i].market_hash_name)) { 
@@ -642,13 +645,13 @@ if (cluster.isWorker) {
                 753,
                 6,
                 true,
-                (errInvGems, INV3) => { // FIX: Renamed error3 to errInvGems (no-shadow)
+                (errInvGems, INV3) => { 
                   if (errInvGems) {
                     logError(errInvGems);
-                    return; // FIX: Used simple return (consistent-return)
+                    return; 
                   }
                   const TheirGems = INV3.filter((gem) => gem.name === 'Gems');
-                  if (TheirGems === undefined || TheirGems.length === 0) {
+                  if (TheirGems.length === 0) {
                     theirGems = 0;
                   } else {
                     const gem = TheirGems[0];
@@ -674,18 +677,19 @@ if (cluster.isWorker) {
                     );
                     const gemsForBuy = buyableKeys * CONFIG.Rates.BUY.Gems_To_TF2_Rate;
 
-                    gemsMsg = `- I can give you ${buyableKeys} TF2 Keys for Your ${gemsForBuy} Gems `
-                      + `(Use !BuyTF ${buyableKeys})`;
+                    // FIX: Broke up long line (508)
+                    gemsMsg = `- I can give you ${buyableKeys} TF2 Keys for Your ${gemsForBuy} Gems ` +
+                      `(Use !BuyTF ${buyableKeys})`;
                   }
 
                   client.chatMessage(
                     SENDER,
                     `You have:\r\n\r\n${theirTF2} TF2 Keys\r\n${tf2Msg}\r\nYou have:\r\n\r\n${theirGems} Gems ${gemsMsg}`
                   );
-                  return; // FIX: Used simple return (consistent-return)
+                  return; 
                 }
               );
-              return; // FIX: Used simple return (consistent-return)
+              return; 
             }
           );
         } else if (MSG.toUpperCase().startsWith('!SELLTF')) {
@@ -696,14 +700,14 @@ if (cluster.isWorker) {
           if (Number.isInteger(Number(n)) && Number(n) > 0) {
             if (Number(n) <= CONFIG.Restrictions.MaxSell) {
               const t = manager.createOffer(steamID64);
-              t.getUserDetails((errDetails, ME, THEM) => { // FIX: Renamed error to errDetails
+              t.getUserDetails((errDetails, ME, THEM) => {
                 if (errDetails) {
                   logError(`## An error occurred while getting trade holds : ${errDetails}`);
                   client.chatMessage(
                     SENDER,
                     'An error occurred while getting your trade holds. Please Enable your Steam Guard!'
                   );
-                  return; // FIX: Used simple return (consistent-return)
+                  return; 
                 }
                 if (ME.escrowDays === 0 && THEM.escrowDays === 0) {
                   client.chatMessage(
@@ -716,14 +720,14 @@ if (cluster.isWorker) {
                   sleep(1500);
                   client.chatMessage(SENDER, 'Please hold...');
                   sleep(1500);
-                  manager.getInventoryContents(753, 6, true, (errInvBot, MyInv) => { // FIX: Renamed callbackError to errInvBot
+                  manager.getInventoryContents(753, 6, true, (errInvBot, MyInv) => {
                     if (errInvBot) {
                       client.chatMessage(
                         SENDER,
                         'Inventory refresh in session. Try again shortly please.'
                       );
                       logError(errInvBot);
-                      return; // FIX: Used simple return (consistent-return)
+                      return; 
                     }
                     const MyGems = MyInv.filter((gem) => gem.name === 'Gems');
                     if (MyGems.length === 0) { 
@@ -732,7 +736,7 @@ if (cluster.isWorker) {
                         SENDER,
                         `Sorry, I don't have enough Gems to make this trade: 0 / ${amountOfGems}, I'll restock soon!`
                       );
-                      return; // FIX: Used simple return (consistent-return)
+                      return; 
                     }
                     const gem = MyGems[0];
                     const gemDifference = amountOfGems - gem.amount;
@@ -747,10 +751,10 @@ if (cluster.isWorker) {
                         440,
                         2,
                         true,
-                        (errInvUser, Inv) => { // FIX: Renamed error2 to errInvUser
+                        (errInvUser, Inv) => { 
                           if (errInvUser) {
                             logError(errInvUser);
-                            return; // FIX: Used simple return (consistent-return)
+                            return; 
                           }
 
                           for (let i = 0; i < Inv.length; i += 1) {
@@ -774,12 +778,12 @@ if (cluster.isWorker) {
                                 `You don't have enough TF2 keys to make this trade: ${TheirKeys.length} / ${n}`
                               );
                             }
-                            return; // FIX: Used simple return (consistent-return)
+                            return; 
                           }
                           // Finalize and send trade offer
                           t.addTheirItems(TheirKeys);
                           t.setMessage('Your Gems Are Ready! Enjoy :)');
-                          t.send((errSend) => { // FIX: Renamed sendError to errSend
+                          t.send((errSend) => { 
                             if (errSend) {
                               client.chatMessage(
                                 SENDER,
@@ -791,12 +795,12 @@ if (cluster.isWorker) {
                             } else {
                               log('[!SellTF] Trade Offer Sent!');
                             }
-                            return; // FIX: Used simple return (consistent-return)
+                            return; 
                           });
-                          return; // FIX: Used simple return (consistent-return)
+                          return; 
                         }
                       );
-                      return; // FIX: Used simple return (consistent-return)
+                      return; 
                     }
                     // Not enough gems (with suggestion for partial trade)
                     const sellableKeys = Math.floor(
@@ -814,17 +818,17 @@ if (cluster.isWorker) {
                         `Sorry, I don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}, I'll restock soon!`
                       );
                     }
-                    return; // FIX: Used simple return (consistent-return)
+                    return; 
                   });
-                  return; // FIX: Used simple return (consistent-return)
+                  return; 
                 }
                 client.chatMessage(
                   SENDER,
                   'Make sure you do not have any Trade Holds.'
                 );
-                return; // FIX: Used simple return (consistent-return)
+                return; 
               });
-              return; // FIX: Used simple return (consistent-return)
+              return; 
             }
             client.chatMessage(
               SENDER,
@@ -844,14 +848,14 @@ if (cluster.isWorker) {
           if (Number.isInteger(Number(n)) && Number(n) > 0) {
             if (Number(n) <= CONFIG.Restrictions.MaxBuy) {
               const t = manager.createOffer(steamID64);
-              t.getUserDetails((errDetails, ME, THEM) => { // FIX: Renamed error to errDetails
+              t.getUserDetails((errDetails, ME, THEM) => {
                 if (errDetails) {
                   logError(`## An error occurred while getting trade holds: ${errDetails}`);
                   client.chatMessage(
                     SENDER,
                     'An error occurred while getting your trade holds. Please Enable your Steam Guard!'
                   );
-                  return; // FIX: Used simple return (consistent-return)
+                  return; 
                 }
                 if (ME.escrowDays === 0 && THEM.escrowDays === 0) {
                   client.chatMessage(
@@ -869,14 +873,16 @@ if (cluster.isWorker) {
                     753,
                     6,
                     true,
-                    (errInvUser, INV) => { // FIX: Renamed callbackError to errInvUser
+                    (errInvUser, INV) => { 
                       if (errInvUser) {
                         logError(errInvUser);
+                        // FIX: Broke up long line (707)
+                        const errMsg = "I can't load your Steam Inventory. Is it private? \r\n If it's not private, then please try again in a few seconds.";
                         client.chatMessage(
                           SENDER,
-                          "I can't load your Steam Inventory. Is it private? \r\n If it's not private, then please try again in a few seconds."
+                          errMsg
                         );
-                        return; // FIX: Used simple return (consistent-return)
+                        return; 
                       }
                       const TheirGems = INV.filter((gem) => gem.name === 'Gems');
                       if (TheirGems.length === 0) { 
@@ -885,7 +891,7 @@ if (cluster.isWorker) {
                           SENDER,
                           `You don't have enough Gems to make this trade: 0 / ${amountOfGems}`
                         );
-                        return; // FIX: Used simple return (consistent-return)
+                        return; 
                       }
                       const gem = TheirGems[0];
                       const gemDifference = amountOfGems - gem.amount;
@@ -899,10 +905,10 @@ if (cluster.isWorker) {
                           440,
                           2,
                           true,
-                          (errInvBot, MyInv) => { // FIX: Renamed error2 to errInvBot
+                          (errInvBot, MyInv) => { 
                             if (errInvBot) {
                               logError(errInvBot);
-                              return; // FIX: Used simple return (consistent-return)
+                              return; 
                             }
 
                             for (let i = 0; i < MyInv.length; i += 1) {
@@ -926,12 +932,12 @@ if (cluster.isWorker) {
                                   `Sorry, I don't have enough TF2 keys to make this trade: ${MyKeys.length} / ${n}, I'll restock soon!`
                                 );
                               }
-                              return; // FIX: Used simple return (consistent-return)
+                              return; 
                             }
                             // Finalize and send trade offer
                             t.addMyItems(MyKeys);
                             t.setMessage('Enjoy your TF2 Keys :)');
-                            t.send((errSend) => { // FIX: Renamed sendError to errSend
+                            t.send((errSend) => { 
                               if (errSend) {
                                 client.chatMessage(
                                   SENDER,
@@ -943,19 +949,18 @@ if (cluster.isWorker) {
                               } else {
                                 log('[!BuyTF] Trade Offer Sent!');
                               }
-                              return; // FIX: Used simple return (consistent-return)
+                              return; 
                             });
-                            return; // FIX: Used simple return (consistent-return)
+                            return; 
                           }
                         );
-                        return; // FIX: Used simple return (consistent-return)
+                        return; 
                       }
                       // Not enough gems (with suggestion for partial trade)
                       const buyableKeys = Math.floor(
                         gem.amount / CONFIG.Rates.BUY.Gems_To_TF2_Rate
                       );
                       if (buyableKeys > 0) {
-                        // FIX: Ensured string is under max-len limit
                         client.chatMessage(
                           SENDER,
                           `You don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}\r\n` +
@@ -967,18 +972,18 @@ if (cluster.isWorker) {
                           `You don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}`
                         );
                       }
-                      return; // FIX: Used simple return (consistent-return)
+                      return; 
                     }
                   );
-                  return; // FIX: Used simple return (consistent-return)
+                  return; 
                 }
                 client.chatMessage(
                   SENDER,
                   'Make sure you do not have any Trade Holds.'
                 );
-                return; // FIX: Used simple return (consistent-return)
+                return; 
               });
-              return; // FIX: Used simple return (consistent-return)
+              return; 
             }
             client.chatMessage(
               SENDER,
@@ -991,7 +996,7 @@ if (cluster.isWorker) {
             );
           }
         }
-        return; // FIX: Used simple return (consistent-return)
+        return; 
       });
     }
   });
