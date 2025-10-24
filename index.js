@@ -90,6 +90,7 @@ if (cluster.isWorker) {
     // Logic for buying user's Backgrounds/Emotes for Gems
   };
 
+/* eslint-disable no-promise-executor-return */
   // Converts unwanted items to gems based on the Convert_To_Gems config
   const autoGemItems = async () => {
     try {
@@ -160,8 +161,6 @@ if (cluster.isWorker) {
         gemmedCount += 1; 
 
         // HTTP request to grind item into gems
-        // FIX: Added disable to fix no-promise-executor-return
-        // eslint-disable-next-line no-promise-executor-return 
         await new Promise((resolve) => {
           community.httpRequestPost(
             {
@@ -195,6 +194,8 @@ if (cluster.isWorker) {
       logError('[AutoGem] Error:', err.message);
     }
   };
+/* eslint-enable no-promise-executor-return */
+
 
   // Processes incoming trade offers
   const processTradeOffer = (offer) => {
@@ -219,7 +220,7 @@ if (cluster.isWorker) {
           log(`[Accepted Offer] | ${partnerID}`);
           return; 
         });
-        return; // FIX: Added return here
+        return; 
       }
 
       // Auto-accept donations
@@ -235,7 +236,7 @@ if (cluster.isWorker) {
           client.chatMessage(partnerID, 'Your donation is appreciated!');
           return; 
         });
-        return; // FIX: Added return here
+        return; 
       }
 
       // Logic for item-based trades
@@ -269,7 +270,7 @@ if (cluster.isWorker) {
           log(`[Declined Offer] | ${partnerID}`);
           return; 
         });
-        return; // FIX: Added return here
+        return; 
       }
 
       // Ignore offers from users on the ignore list
@@ -286,7 +287,7 @@ if (cluster.isWorker) {
         log(`[Declined Offer] | ${partnerID}`);
         return; 
       });
-      return; // FIX: Added return here
+      return; 
     });
   };
 
@@ -384,7 +385,7 @@ if (cluster.isWorker) {
     manager.getInventoryContents(753, 6, true, (errInv, INV) => {
       if (errInv) {
         logError('Could not load inventory:', errInv);
-        return; // FIX: Added return here
+        return; 
       }
       let myGems = 0;
       const MyGems = INV.filter((gem) => gem.name === 'Gems');
@@ -394,7 +395,7 @@ if (cluster.isWorker) {
 
       const playThis = `${myGems} Gems > Buy/Sell Gems (!prices)`;
       client.gamesPlayed(playThis, true);
-      return; // FIX: Added return here
+      return; 
     });
   });
 
@@ -431,7 +432,7 @@ if (cluster.isWorker) {
   });
 
   // Handle new mobile trade confirmations
-  client.on('confKey', (CONF) => { // Using client.on('confKey') for older library versions
+  community.on('newConfirmation', (CONF) => { 
     log('## New confirmation.');
     community.acceptConfirmationForObject(
       CONFIG.IDENTITYSECRET,
@@ -525,7 +526,6 @@ if (cluster.isWorker) {
                 }
 
                 // 3. Send Report
-                // FIX: Broke up long line (465)
                 const profitMsg = `Current stock:\r\n- Gems: ${myGems}\r\n- TF2 Keys: ${myTF2Keys}`;
                 client.chatMessage(SENDER, profitMsg);
                 return; 
@@ -606,7 +606,6 @@ if (cluster.isWorker) {
           MSG.toUpperCase() === '!RATES' ||
           MSG.toUpperCase() === '!PRICES'
         ) {
-          // FIX: Broke up long line (496)
           const priceMsg1 = `Sell Your: \r\n1 TF2 Key for Our ${CONFIG.Rates.SELL.TF2_To_Gems} Gems\r\n\r\nBuy Our: \r\n1 TF2 Key for Your ${CONFIG.Rates.BUY.Gems_To_TF2_Rate} Gems\r\n\r\nWe're also:\r\n`;
           const priceMsg2 = `Buying Your Backgrounds & emotes for ${CONFIG.Rates.BUY.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)\r\nSelling any of OUR Backgrounds & emotes for ${CONFIG.Rates.SELL.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)`;
           client.chatMessage(
@@ -677,7 +676,6 @@ if (cluster.isWorker) {
                     );
                     const gemsForBuy = buyableKeys * CONFIG.Rates.BUY.Gems_To_TF2_Rate;
 
-                    // FIX: Broke up long line (508)
                     gemsMsg = `- I can give you ${buyableKeys} TF2 Keys for Your ${gemsForBuy} Gems ` +
                       `(Use !BuyTF ${buyableKeys})`;
                   }
@@ -876,7 +874,6 @@ if (cluster.isWorker) {
                     (errInvUser, INV) => { 
                       if (errInvUser) {
                         logError(errInvUser);
-                        // FIX: Broke up long line (707)
                         const errMsg = "I can't load your Steam Inventory. Is it private? \r\n If it's not private, then please try again in a few seconds.";
                         client.chatMessage(
                           SENDER,
