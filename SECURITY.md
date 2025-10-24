@@ -19,7 +19,7 @@ As a community-maintained, open-source project, security relies on transparency 
   * **Maintenance:** We keep the project updated to ensure compatibility and mitigate known risks.
   * **Disclaimers:** In case of any major, unpatched security concern, we will post a public disclaimer and mark the project as temporarily unsafe.
 
-> For information regarding data handling and privacy, please check the **[Privacy Policy](https://www.google.com/search?q=https://github.com/killerboyyy777/777-steam-gem-tf2key-bot/blob/master/.github/PRIVACY.md)** .
+> For information regarding data handling and privacy, please check the **[Privacy Policy](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/blob/master/PRIVACY.md)** .
 
 -----
 
