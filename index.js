@@ -202,7 +202,7 @@ if (cluster.isWorker) {
     
     offer.getUserDetails((errTrade) => { 
       if (errTrade) {
-        logError(`An error occured while processing a trade : ${errTrade}`);
+        logError(`An error occurred while processing a trade: ${errTrade}`);
         return; 
       }
 
@@ -211,7 +211,7 @@ if (cluster.isWorker) {
         offer.accept((errAccept) => {
           if (errAccept) {
             logError(
-              `Error occured while auto accepting admin trades : ${errAccept}`
+              `Error occurred while auto accepting admin trades: ${errAccept}`
             );
             return; 
           }
@@ -226,7 +226,7 @@ if (cluster.isWorker) {
         offer.accept((errAccept) => {
           if (errAccept) {
             logError(
-              `Error occured accepting donations : ${errAccept}`
+              `Error occurred accepting donations: ${errAccept}`
             );
             return; 
           }
@@ -262,7 +262,7 @@ if (cluster.isWorker) {
         // Decline all other item-to-item trades
         offer.decline((errDecline) => {
           if (errDecline) {
-            logError(`Error declining the trade offer : ${errDecline}`);
+            logError(`Error declining the trade offer: ${errDecline}`);
             return; 
           }
           log(`[Declined Offer] | ${partnerID}`);
@@ -279,7 +279,7 @@ if (cluster.isWorker) {
       // Decline all other offers (empty, invalid, etc.)
       offer.decline((errDecline) => {
         if (errDecline) {
-          logError(`Error declining the trade offer : ${errDecline}`);
+          logError(`Error declining the trade offer: ${errDecline}`);
           return; 
         }
         log(`[Declined Offer] | ${partnerID}`);
@@ -394,7 +394,7 @@ if (cluster.isWorker) {
     community.getSteamUser(SENDER, (errUser, user) => {
       if (errUser) {
         logError(
-          `Failure checking current friend relationship with new customer : ${errUser}`
+          `Failure checking current friend relationship with new customer: ${errUser}`
         );
         return; 
       }
@@ -463,7 +463,7 @@ if (cluster.isWorker) {
       community.getSteamUser(SENDER, (errUser, user) => {
         if (errUser) {
           logError(
-          `Failure parsing users Steam Info. Possibly illegal ASCII letters in name OR steam failed to : ${errUser}`
+          `Failure parsing users Steam Info. Possibly illegal ASCII letters in name OR steam failed to fetch info: ${errUser}`
           );
           return; 
         }
@@ -597,7 +597,7 @@ if (cluster.isWorker) {
           MSG.toUpperCase() === '!PRICES'
         ) {
           const priceMsg1 = `Sell Your: \r\n1 TF2 Key for Our ${CONFIG.Rates.SELL.TF2_To_Gems} Gems\r\n\r\nBuy Our: \r\n1 TF2 Key for Your ${CONFIG.Rates.BUY.Gems_To_TF2_Rate} Gems\r\n\r\nWe're also:\r\n`;
-          const priceMsg2 = `Buying Your Backgrounds & emotes for ${CONFIG.Rates.BUY.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)\r\nSelling any of OUR Backgrounds & emotes for ${CONFIG.Rates.SELL.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)`;
+          const priceMsg2 = `Buying Your Backgrounds & Emotes for ${CONFIG.Rates.BUY.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)\r\nSelling any of OUR Backgrounds & Emotes for ${CONFIG.Rates.SELL.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)`;
           client.chatMessage(
             SENDER,
             priceMsg1 + priceMsg2
@@ -690,7 +690,7 @@ if (cluster.isWorker) {
               const t = manager.createOffer(steamID64);
               t.getUserDetails((errDetails, ME, THEM) => {
                 if (errDetails) {
-                  logError(`## An error occurred while getting trade holds : ${errDetails}`);
+                  logError(`## An error occurred while getting trade holds: ${errDetails}`);
                   client.chatMessage(
                     SENDER,
                     'An error occurred while getting your trade holds. Please Enable your Steam Guard!'
