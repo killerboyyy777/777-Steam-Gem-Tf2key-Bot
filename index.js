@@ -90,7 +90,7 @@ if (cluster.isWorker) {
   // Converts unwanted items to gems based on the Convert_To_Gems config
   // The 'no-promise-executor-return' rule is disabled here because the SteamCommunity 
   // function uses a callback that we must wrap in a Promise. The 'return' is used for 
-  // control flow (to exit the callback), but is falsely flagged by the linter.
+  // control flow (to exit the callback), but is incorrectly flagged by the linter.
   const autoGemItems = async () => {
     try {
       log('[AutoGem] Checking inventory for items to convert...');
@@ -864,7 +864,8 @@ if (cluster.isWorker) {
                     (errInvUser, INV) => { 
                       if (errInvUser) {
                         logError(errInvUser);
-                        const errMsg = "I can't load your Steam Inventory. Is it private? \r\n If it's not private, then please try again in a few seconds.";
+                        const errMsg = "I can't load your Steam Inventory. Is it private? \r\n"
+                          + "If it's not private, then please try again in a few seconds.";
                         client.chatMessage(
                           SENDER,
                           errMsg
