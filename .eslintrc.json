@@ -27,6 +27,7 @@
         "no-loop-func": "off",
         "no-param-reassign": "off",
         "no-plusplus": "off",
-        "consistent-return": "off"
+        "consistent-return": "off",
+        "no-promise-executor-return": "off"
     }
 }
