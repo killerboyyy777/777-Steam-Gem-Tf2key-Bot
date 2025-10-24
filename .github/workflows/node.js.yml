@@ -11,6 +11,8 @@ on:
     # Triggers on pull requests targeting the primary branch
     branches: [ "master" ]
 
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
