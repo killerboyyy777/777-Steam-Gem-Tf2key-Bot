@@ -4,12 +4,7 @@
 // Original License: GNU General Public License v3.0 (GPLv3)
 // 
 // Modifications and maintenance by killerboyyy777 (https://steamcommunity.com/id/klb777)
-// Changes include:
-//    - Enhanced API communication
-//    - Implemented AutoGem weekly conversion feature (previously only a config value)
-//    - Updated profit tracking system
-//    - Compatibility fixes and improved logging
-// © 2025 killerboy777 – Licensed under the same GPLv3
+// This script is part of the bot and is licensed under the GPLv3.
 // -------------------------------------------------------------
 
 // Global Requires (Node.js/Steam Modules)
@@ -33,7 +28,7 @@ if (cluster.isMaster) {
 if (cluster.isWorker) {
   // Global definitions for the worker
   const SID64REGEX = /^[0-9]{17}$/; 
-  let userMsgs = {}; // Used for spam filtering
+  let userMsgs = {}; // Used for spam filtering (rate limiting)
   
   // Initialize Steam Objects
   const client = new SteamUser();
@@ -60,38 +55,42 @@ if (cluster.isWorker) {
 
   // Custom logging function 
   const log = (...args) => {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- Necessary for bot logging, not debugging.
     console.log(`[${getTime()}]`, ...args);
   };
 
   const logError = (...args) => {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- Necessary for bot logging, not debugging.
     console.error(`[${getTime()}] [ERROR]`, ...args);
   };
 
-  // Helper functions (placeholders)
-  // eslint-disable-next-line no-unused-vars
+  // Helper functions (placeholders for external logic)
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
   const refreshInventory = async () => {
     // Logic to refresh inventory details
   };
 
-  // eslint-disable-next-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
   const commentUser = (user) => {
     // Logic to post a comment on user's profile
   };
 
-  // eslint-disable-next-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
   const sellBgsAndEmotes = async (offer) => {
     // Logic for selling the bot's Backgrounds/Emotes for Gems
   };
 
-  // eslint-disable-next-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
   const buyBgsAndEmotes = async (offer) => {
     // Logic for buying user's Backgrounds/Emotes for Gems
   };
 
+
 /* eslint-disable no-promise-executor-return */
   // Converts unwanted items to gems based on the Convert_To_Gems config
+  // The 'no-promise-executor-return' rule is disabled here because the SteamCommunity 
+  // function uses a callback that we must wrap in a Promise. The 'return' is used for 
+  // control flow (to exit the callback), but is falsely flagged by the linter.
   const autoGemItems = async () => {
     try {
       log('[AutoGem] Checking inventory for items to convert...');
@@ -201,7 +200,6 @@ if (cluster.isWorker) {
   const processTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
     
-    // FIX: Removed implicit returns from offer.getUserDetails callback
     offer.getUserDetails((errTrade) => { 
       if (errTrade) {
         logError(`An error occured while processing a trade : ${errTrade}`);
@@ -223,7 +221,7 @@ if (cluster.isWorker) {
         return; 
       }
 
-      // Auto-accept donations
+      // Auto-accept donations (user gives items, bot gives none)
       if (offer.itemsToGive.length === 0) {
         offer.accept((errAccept) => {
           if (errAccept) {
@@ -315,7 +313,7 @@ if (cluster.isWorker) {
     userMsgs = {};
   }, 1000);
 
-  // Initial console header
+  // Initial console header (License/Copyright display)
   log('\x1b[32m///////////////////////////////////////////////////////////////////////////\x1b[0m');
   log('\x1b[31mCopyright (C) 2025 killerboyyy777\x1b[0m');
   log('\x1b[31mhttps://steamcommunity.com/id/klb777\x1b[0m');
@@ -326,14 +324,6 @@ if (cluster.isWorker) {
   log('\x1b[31munder certain conditions\x1b[0m');
   log('\x1b[31mFor more Information Check the LICENSE File.\x1b[0m');
   log('\x1b[32m///////////////////////////////////////////////////////////////////////////\x1b[0m');
-
-  // DEBUG: Logging in
-  log('[DEBUG] Logging in with:', {
-    accountName: CONFIG.USERNAME,
-    password: CONFIG.PASSWORD ? '***' : 'MISSING',
-    sharedSecret: CONFIG.SHAREDSECRET ? 'OK' : 'MISSING',
-    steamApiKey: CONFIG.STEAMAPIKEY ? 'OK' : 'MISSING',
-  });
 
   // Log in to Steam
   client.logOn({
@@ -367,11 +357,11 @@ if (cluster.isWorker) {
     log('[AutoGem] Starting initial AutoGem check...');
     await autoGemItems();
 
-    // Repeat Autogem once per Week
+    // Repeat Autogem once per Week (7 * 24 * 60 * 60 * 1000 ms)
     setInterval(() => {
       log('[AutoGem] Running weekly AutoGem check...');
       autoGemItems();
-    }, 7 * 24 * 60 * 60 * 1000); // 1 Week interval
+    }, 7 * 24 * 60 * 60 * 1000);
 
     // Accept pending friend requests
     for (let i = 0; i < Object.keys(client.myFriends).length; i += 1) { 
@@ -473,7 +463,7 @@ if (cluster.isWorker) {
       community.getSteamUser(SENDER, (errUser, user) => {
         if (errUser) {
           logError(
-            `Failure parsing users Steam Info. Possibly illegal ASCII letters in name OR steam failed to : ${errUser}`
+          `Failure parsing users Steam Info. Possibly illegal ASCII letters in name OR steam failed to : ${errUser}`
           );
           return; 
         }
@@ -729,7 +719,7 @@ if (cluster.isWorker) {
                     }
                     const MyGems = MyInv.filter((gem) => gem.name === 'Gems');
                     if (MyGems.length === 0) { 
-                      // Not enough gems
+                      // Bot has 0 gems
                       client.chatMessage(
                         SENDER,
                         `Sorry, I don't have enough Gems to make this trade: 0 / ${amountOfGems}, I'll restock soon!`
@@ -764,7 +754,7 @@ if (cluster.isWorker) {
                             }
                           }
                           if (TheirKeys.length !== Number(n)) {
-                            // Not enough keys from user
+                            // User does not have enough keys
                             if (TheirKeys.length > 0) {
                               client.chatMessage(
                                 SENDER,
@@ -800,7 +790,7 @@ if (cluster.isWorker) {
                       );
                       return; 
                     }
-                    // Not enough gems (with suggestion for partial trade)
+                    // Bot does not have enough gems (with suggestion for partial trade)
                     const sellableKeys = Math.floor(
                       gem.amount / CONFIG.Rates.SELL.TF2_To_Gems
                     );
@@ -917,7 +907,7 @@ if (cluster.isWorker) {
                               }
                             }
                             if (MyKeys.length !== Number(n)) {
-                              // Not enough keys from bot
+                              // Bot does not have enough keys
                               if (MyKeys.length > 0) {
                                 client.chatMessage(
                                   SENDER,
@@ -953,7 +943,7 @@ if (cluster.isWorker) {
                         );
                         return; 
                       }
-                      // Not enough gems (with suggestion for partial trade)
+                      // User does not have enough gems (with suggestion for partial trade)
                       const buyableKeys = Math.floor(
                         gem.amount / CONFIG.Rates.BUY.Gems_To_TF2_Rate
                       );
