@@ -1,0 +1,8 @@
+# Diese Datei ermöglicht den "Sponsor"-Button auf Ihrem GitHub-Repository.
+
+github: [killerboyyy777] 
+
+custom: # Individuelle URLs für Spenden (Trade-Link und Krypto-Adressen)
+  - https://steamcommunity.com/tradeoffer/new/?partner=1211192445&token=T9Hiu3Oz
+  - ltc1qjr49nr028mcajlt7prmmnqnjh0552qjj90zdq4 # Litecoin (LTC)
+  - 82oJRDdiSWWbem3HiYx7ZdDdiPkYQAW4LaGNHpNcJ9DCendQ3XcxHNYQiRMtfghYtSMmARPGqKe2ddSrhtjviTraEyGwgZ2 # Monero (XMR)
