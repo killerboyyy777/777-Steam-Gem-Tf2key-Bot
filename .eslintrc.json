@@ -14,11 +14,10 @@
         "max-len": [
             "error",
             {
-                "code": 150,
+                "code": 100,
                 "ignoreComments": true,
                 "ignoreStrings": true,
                 "ignoreTemplateLiterals": true,
-		"ignoreRegExpLiterals": true,
                 "ignoreUrls": true
             }
         ],
@@ -29,8 +28,6 @@
         "no-param-reassign": "off",
         "no-plusplus": "off",
         "consistent-return": "off",
-        "no-promise-executor-return": "off",
-	"no-console": "off",
-        "no-unused-vars": "off"
+        "no-promise-executor-return": "off"
     }
 }

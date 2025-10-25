@@ -1,147 +1,36 @@
-// index.js
+// -------------------------------------------------------------
+// Modified Version of Steam-Gem-Key-Bot
+// Original Author: mfw (https://steamcommunity.com/id/mfwBan)
+// Original License: GNU General Public License v3.0 (GPLv3)
+//
+// Modifications and maintenance by killerboyyy777 (https://steamcommunity.com/id/klb777)
+// This script is part of the bot and is licensed under the GPLv3.
+// -------------------------------------------------------------
+
+// Global Requires (Node.js/Steam Modules)
+const cluster = require('cluster');
 const SteamUser = require('steam-user');
-const SteamCommunity = require('steamcommunity');
-const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamTotp = require('steam-totp');
-const fs = require('fs');
-const util = require('util');
-
-// --- Global Constants and Setup ---
+const TradeOfferManager = require('steam-tradeoffer-manager');
+const SteamCommunity = require('steamcommunity');
+// REMOVED: const sleep = require('system-sleep'); // Blockierender Aufruf entfernt
 const CONFIG = require('./SETTINGS/config');
-const tradeLogic = require('./tradeLogic');
-const packageJson = require('./package.json');
 
-const VERSION = packageJson.version;
-const LOG_FILE = 'bot_activity.log';
+// Cluster setup for process resilience
+if (cluster.isMaster) {
+  cluster.fork();
 
-const TF2_APP_ID = 440;
-const TF2_CONTEXT_ID = 2;
-const GEM_APP_ID = 753;
-const GEM_CONTEXT_ID = 6;
-const BLACKLIST_FILE = 'blacklist.json';
-const SID64REGEX = /^[0-9]{17}$/;
-
-// NEU: Global Bot Info structure
-const GlobalBotInfo = {
-  clientSteamID: null,
-  botGemAssetID: null,
-  userMsgs: {},
-};
-
-// --- Helper Functions for I/O and Logging ---
-
-const getTime = () => {
-  const time = new Date();
-  const hours = String(time.getHours()).padStart(2, '0');
-  const minutes = String(time.getMinutes()).padStart(2, '0');
-  const seconds = String(time.getSeconds()).padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
-};
-
-const log = (...args) => {
-  // eslint-disable-next-line no-console
-  console.log(`[${getTime()}]`, ...args);
-};
-
-const logError = (...args) => {
-  // eslint-disable-next-line no-console
-  console.error(`[${getTime()}] [ERROR]`, ...args);
-};
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Executes an async function with exponential backoff on failure (retry up to 5 times).
- * @param {function} fn The async function to execute.
- * @param {number} maxRetries The maximum number of retries.
- * @returns {Promise<any>} The result of the successful execution.
- */
-const retryWithBackoff = async (fn, maxRetries = 5) => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxRetries) {
-        throw error; // Re-throw the error on the final attempt
-      }
-      // Exponential backoff with jitter: 200ms * 2^(attempt-1) + random(0-500ms)
-      const baseDelay = 200;
-      const jitter = Math.floor(Math.random() * 500);
-      const backoffTime = baseDelay * 2 ** (attempt - 1) + jitter;
-      logError(
-        `[Retry] Attempt ${attempt} failed with error: ${error.message}. Retrying in ${backoffTime}ms...`,
-      );
-      await delay(backoffTime);
-    }
-  }
-};
-
-// --- Configuration Check Function ---
-const checkConfig = () => {
-  const requiredFields = {
-    USERNAME: CONFIG.USERNAME,
-    PASSWORD: CONFIG.PASSWORD,
-    IDENTITYSECRET: CONFIG.IDENTITYSECRET,
-    SHAREDSECRET: CONFIG.SHAREDSECRET,
-    STEAMAPIKEY: CONFIG.STEAMAPIKEY,
-    OWNER_0: CONFIG.Owner[0],
-  };
-
-  let allGood = true;
-  log('\n[Configuration Check] Reviewing critical settings...');
-
-  Object.keys(requiredFields).forEach((key) => {
-    const value = requiredFields[key];
-    const displayValue = value ? `${value.substring(0, 5)}...` : 'Missing';
-
-    if (!value || (typeof value === 'string' && value.trim() === '')) {
-      logError(`[Config] ${key}: ${displayValue}`);
-      allGood = false;
-    } else {
-      log(`[Config] ${key}: ${displayValue}`);
-    }
+  cluster.on('exit', () => {
+    cluster.fork();
   });
+}
 
-  if (!allGood) {
-    logError(
-      '\n[FATAL] One or more critical configuration values are "Missing".'
-            + '\nPlease open ./SETTINGS/config.js and fill in your Steam credentials (USERNAME, PASSWORD, IDENTITYSECRET, SHAREDSECRET) and your SteamID64 in the Owner array (Owner[0]).'
-            + '\nBot will now exit.',
-    );
-    process.exit(1);
-  }
+if (cluster.isWorker) {
+  // Global definitions for the worker
+  const SID64REGEX = /^[0-9]{17}$/;
+  let userMsgs = {}; // Used for spam filtering (rate limiting)
 
-  log('[Configuration Check] All critical values are present. Starting bot...');
-  log('---------------------------------------------------------------------');
-};
-
-// Load the Blacklist from the file.
-const loadBlacklist = (config) => {
-  try {
-    if (fs.existsSync(BLACKLIST_FILE)) {
-      const data = fs.readFileSync(BLACKLIST_FILE, 'utf8');
-      config.Ignore_Msgs = JSON.parse(data);
-      log(`[INIT] Loaded ${config.Ignore_Msgs.length} entries from blacklist.`);
-    }
-  } catch (error) {
-    logError(`[FATAL] Error loading blacklist: ${error.message}`);
-    config.Ignore_Msgs = [];
-  }
-};
-
-// Save the Blacklist to the file.
-const saveBlacklist = (config) => {
-  try {
-    fs.writeFileSync(BLACKLIST_FILE, JSON.stringify(config.Ignore_Msgs, null, 2), 'utf8');
-  } catch (error) {
-    logError(`[FATAL] Error saving blacklist: ${error.message}`);
-  }
-};
-
-const main = () => {
-  // Run the check before initializing other components
-  checkConfig();
-
+  // Initialize Steam Objects
   const client = new SteamUser();
   const manager = new TradeOfferManager({
     language: 'en',
@@ -151,162 +40,167 @@ const main = () => {
   });
   const community = new SteamCommunity();
 
-  // --- CORE ASYNC HELPERS (Promisified Steam API Wrappers) ---
+  // ----------------------------------------------------------
+  // CORE FUNCTIONS
+  // ----------------------------------------------------------
 
-  // Wrapped with retryWithBackoff for robustness against Steam API failures
-  const getInventoryContentsAsync = (steamID, appid, contextid, tradable) => retryWithBackoff(
-    () => new Promise((resolve, reject) => {
-      manager.getInventoryContents(steamID, appid, contextid, tradable, (err, inv) => {
-        if (err) return reject(err);
-        resolve(inv || []);
-      });
-    }),
-  );
+  // Non-blocking delay function to replace blocking sleep()
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const getUserDetailsAsync = (offer) => new Promise((resolve, reject) => {
-    offer.getUserDetails((err, me, them) => {
-      if (err) return reject(err);
-      resolve({ me, them });
-    });
-  });
-
-  const getInventoryGems = async (steamID) => {
-    try {
-      // This internally uses the retried getInventoryContentsAsync
-      const inv = await getInventoryContentsAsync(steamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
-      const gemItem = inv.find((item) => item.name === 'Gems');
-      return gemItem ? gemItem.amount : 0;
-    } catch (error) {
-      logError(
-        `[Inventory Fetch] Failed to get gem count for ${steamID.getSteamID64()} after retries: ${error.message}`,
-      );
-      return 0;
-    }
+  // Get current time for log timestamps
+  const getTime = () => {
+    const time = new Date();
+    const hours = String(time.getHours()).padStart(2, '0');
+    const minutes = String(time.getMinutes()).padStart(2, '0');
+    const seconds = String(time.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
   };
 
-  const getUserCommunityInvAsync = util.promisify(community.getUserInventoryContents).bind(community);
-
-  // Function to fetch and save the Bot's Gem Asset ID
-  const updateBotGemAssetID = async (clientSteamID) => {
-    try {
-      // Uses the retried inventory fetch
-      const userGemInv = await getInventoryContentsAsync(clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
-      const botGemItem = userGemInv.find((item) => item.name === 'Gems');
-
-      if (botGemItem) {
-        GlobalBotInfo.botGemAssetID = botGemItem.assetid;
-        log(`[INFO] Successfully updated Bot Gem Asset ID: ${botGemItem.assetid}`);
-      } else {
-        GlobalBotInfo.botGemAssetID = null;
-        logError('[FATAL] Bot has no Gems in inventory. Cannot sell gems.');
-      }
-    } catch (err) {
-      logError(`[FATAL] Error updating Bot Gem Asset ID after retries: ${err.message}`);
-      GlobalBotInfo.botGemAssetID = null;
-    }
+  // Custom logging function
+  const log = (...args) => {
+    // eslint-disable-next-line no-console -- Necessary for bot logging, not debugging.
+    console.log(`[${getTime()}]`, ...args);
   };
 
-  // --- MARKET GRIND HELPER (For AutoGem) ---
-  /**
-     * Executes the Steam Market Grind to convert an item to gems.
-     * @param {string} sessionID - The Steam web session ID.
-     * @param {object} item - The item to grind.
-     * @returns {Promise<object>} The HTTP response object.
-     */
-  const grindItemToGoo = (sessionID, item) => new Promise((resolve, reject) => {
-    community.httpRequestPost(
-      {
-        uri: 'https://steamcommunity.com/market/grindintogoo/',
-        formData: {
-          sessionid: sessionID,
-          appid: String(item.appid),
-          assetid: String(item.assetid),
-          contextid: String(item.contextid),
-        },
-      },
-      (err, res) => {
-        if (err || res.statusCode !== 200) {
-          // Reject on error or non-200 status for retry
-          return reject(new Error(`Market Grind Failed: ${err || res.statusCode} for item ${item.market_hash_name}`));
-        }
-        resolve(res);
-      },
-    );
-  });
+  const logError = (...args) => {
+    // eslint-disable-next-line no-console -- Necessary for bot logging, not debugging.
+    console.error(`[${getTime()}] [ERROR]`, ...args);
+  };
 
-  // --- CORE TRADE LOGIC ---
+  // Helper functions (placeholders for external logic)
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
+  const refreshInventory = async () => {
+    // Logic to refresh inventory details
+  };
 
-  /**
-     * Sends a structured trade offer after checking for holds and items.
-     */
-  const sendTradeOffer = async (senderID64, keyAmount, gemAmount, botItems, userItems, message) => {
-    const t = manager.createOffer(senderID64);
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
+  const commentUser = (user) => {
+    // Logic to post a comment on user's profile
+  };
 
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
+  const sellBgsAndEmotes = async (offer) => {
+    // Logic for selling the bot's Backgrounds/Emotes for Gems
+  };
+
+  // eslint-disable-next-line no-unused-vars -- Function is a structural placeholder, actual logic is external.
+  const buyBgsAndEmotes = async (offer) => {
+    // Logic for buying user's Backgrounds/Emotes for Gems
+  };
+
+  /* eslint-disable no-promise-executor-return */
+  // Converts unwanted items to gems based on the Convert_To_Gems config
+  // The 'no-promise-executor-return' rule is disabled here because the SteamCommunity
+  // function uses a callback that we must wrap in a Promise. The 'return' is used for
+  // control flow (to exit the callback), but is falsely flagged by the linter.
+  const autoGemItems = async () => {
     try {
-      // 1. Check for trade holds
-      const { me, them } = await getUserDetailsAsync(t);
+      log('[AutoGem] Checking inventory for items to convert...');
 
-      if (me.escrowDays !== 0 || them.escrowDays !== 0) {
-        client.chatMessage(senderID64, 'Make sure you do not have any Trade Holds.');
-        return false;
+      const sessionID = community.getSessionID();
+      if (!sessionID) {
+        log('[AutoGem] No valid session ID yet, skipping.');
+        return;
       }
 
-      // 2. Add items to the trade offer
-      if (botItems.length > 0) t.addMyItems(botItems);
-      if (userItems.length > 0) t.addTheirItems(userItems);
-
-      // 3. Send processing messages and wait
-      client.chatMessage(senderID64, `You requested to trade ${keyAmount} Keys for ${gemAmount} Gems.`);
-      await delay(1500);
-      client.chatMessage(senderID64, 'Trade Processing');
-      await delay(1500);
-      client.chatMessage(senderID64, 'Please hold...');
-      await delay(1500);
-
-      // 4. Send the trade offer (TradeOfferManager handles its own retries/logic, so no need to double-wrap)
-      t.setMessage(message);
-      await new Promise((resolve, reject) => {
-        t.send((errSend) => {
-          if (errSend) return reject(errSend);
-          resolve();
+      // Fetch user inventory (App ID 753, Context ID 6 for Steam Community)
+      const inventory = await new Promise((resolve, reject) => {
+        community.getUserInventoryContents(client.steamID, 753, 6, true, (errInv, inv) => {
+          if (errInv) return reject(errInv);
+          return resolve(inv || []);
         });
       });
 
-      log(`[Trade Sent] Offer for ${keyAmount} Keys sent to ${senderID64}`);
-      return true;
-    } catch (err) {
-      // Handle common errors like inventory refresh or failed send
-      logError(`[Trade Failed] Error sending offer to ${senderID64}: ${err.message}`);
-      client.chatMessage(
-        senderID64,
-        'An error occurred while preparing or sending the trade. Please try again in a few seconds.',
-      );
-      return false;
-    }
-  };
+      if (inventory.length === 0) {
+        log('[AutoGem] Inventory empty or unavailable.');
+        return;
+      }
 
-  // Placeholder for commentUser
-  const commentUser = (steamID64) => {
-    if (CONFIG.Comment_After_Trade) {
-      community.postUserComment(steamID64, CONFIG.Comment_After_Trade, (err) => {
-        if (err) {
-          logError(`Failed to post comment to ${steamID64}: ${err.message}`);
-          return;
+      // Filter for gemmable items that exceed the set threshold
+      const itemsToConvert = inventory.filter((item) => {
+        const type = item.type?.toLowerCase() || '';
+        const name = item.market_hash_name?.toLowerCase() || '';
+
+        const isEmoteOrBG = type.includes('profile background') || type.includes('emoticon');
+        const skip = type.includes('trading card')
+          || name.includes('booster')
+          || name.includes('gems');
+
+        if (!isEmoteOrBG || skip || !Array.isArray(item.descriptions)) {
+          return false;
         }
-        log(`[Commented] Post-trade comment sent to ${steamID64}`);
+
+        const gemInfo = item.descriptions.find((d) => d.value?.includes('This item is worth:'));
+
+        if (!gemInfo) {
+          return false;
+        }
+
+        const match = gemInfo.value.match(/(\d+)\s*Gems?/i);
+        if (!match) {
+          return false;
+        }
+
+        const gemValue = parseInt(match[1], 10);
+        return gemValue > CONFIG.Convert_To_Gems;
       });
+
+      let gemmedCount = 0;
+
+      // Convert items sequentially with throttling
+      await itemsToConvert.reduce(async (previousPromise, item) => {
+        await previousPromise;
+
+        const gemInfo = item.descriptions.find((d) => d.value?.includes('This item is worth:'));
+        const match = gemInfo.value.match(/(\d+)\s*Gems?/i);
+        const gemValue = parseInt(match[1], 10);
+
+        log(`[AutoGem] Converting ${item.market_hash_name} (${gemValue} gems)...`);
+        gemmedCount += 1;
+
+        // HTTP request to grind item into gems
+        await new Promise((resolve) => {
+          community.httpRequestPost(
+            {
+              uri: 'https://steamcommunity.com/market/grindintogoo/',
+              formData: {
+                sessionid: sessionID,
+                appid: String(item.appid),
+                assetid: String(item.assetid),
+                contextid: String(item.contextid),
+              },
+            },
+            (err, res) => {
+              if (err || res.statusCode !== 200) {
+                logError(
+                  `[AutoGem] Error converting ${item.market_hash_name}: ${err || res.statusCode}`,
+                );
+              }
+              resolve();
+            },
+          );
+        });
+
+        // Throttle request rate
+        await new Promise((r) => setTimeout(r, 1000));
+
+        return Promise.resolve();
+      }, Promise.resolve());
+
+      log(`[AutoGem] Finished converting ${gemmedCount} items this run.`);
+    } catch (err) {
+      logError('[AutoGem] Error:', err.message);
     }
   };
+  /* eslint-enable no-promise-executor-return */
 
-  /**
-     * Processes incoming trade offers by checking type and calling tradeLogic handlers.
-     */
+  // Processes incoming trade offers
   const processTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
 
     offer.getUserDetails((errTrade) => {
       if (errTrade) {
-        logError(`An error occurred while processing a trade : ${errTrade}`);
+        logError(`An error occured while processing a trade : ${errTrade}`);
         return;
       }
 
@@ -314,7 +208,9 @@ const main = () => {
       if (CONFIG.Owner.includes(partnerID)) {
         offer.accept((errAccept) => {
           if (errAccept) {
-            logError(`Error occurred while auto accepting admin trades : ${errAccept}`);
+            logError(
+              `Error occured while auto accepting admin trades : ${errAccept}`,
+            );
             return;
           }
           log(`[Accepted Offer] | ${partnerID}`);
@@ -326,7 +222,9 @@ const main = () => {
       if (offer.itemsToGive.length === 0) {
         offer.accept((errAccept) => {
           if (errAccept) {
-            logError(`Error occurred accepting donations : ${errAccept}`);
+            logError(
+              `Error occured accepting donations : ${errAccept}`,
+            );
             return;
           }
           log(`[Donation Accepted] | ${partnerID}`);
@@ -335,25 +233,45 @@ const main = () => {
         return;
       }
 
-      // --- Modularized Item-based Trade Logic (BG/Emote buy/sell) ---
+      // Logic for item-based trades
       if (offer.itemsToReceive.length > 0) {
         const myItems = offer.itemsToGive;
+        const tag = myItems[0].type;
         const theirItems = offer.itemsToReceive;
+        const tag2 = theirItems[0].type;
 
-        // Selling the bot's BGs/Emotes for the user's Gems (Bot gives items, User gives Gems)
-        if (myItems.length > 0 && myItems.some((item) => item.type && (item.type.includes('Profile Background') || item.type.includes('Emoticon')))) {
-          tradeLogic.sellBgsAndEmotes(offer);
+        // Selling the bot's BGs/Emotes for the user's Gems
+        if (tag.includes('Profile Background') || tag.includes('Emoticon')) {
+          sellBgsAndEmotes(offer);
           return;
         }
 
-        // Buying the user's BGs/Emotes for the bot's Gems (Bot gives Gems, User gives items)
-        if (theirItems.length > 0 && theirItems.some((item) => item.type && (item.type.includes('Profile Background') || item.type.includes('Emoticon')))) {
-          tradeLogic.buyBgsAndEmotes(offer);
+        // Buying the user's BGs/Emotes for the bot's Gems
+        if (
+          tag2.includes('Profile Background')
+          || tag2.includes('Emoticon')
+        ) {
+          buyBgsAndEmotes(offer);
           return;
         }
+
+        // Decline all other item-to-item trades
+        offer.decline((errDecline) => {
+          if (errDecline) {
+            logError(`Error declining the trade offer : ${errDecline}`);
+            return;
+          }
+          log(`[Declined Offer] | ${partnerID}`);
+        });
+        return;
       }
 
-      // Decline all other offers (item-to-item, invalid, etc.)
+      // Ignore offers from users on the ignore list
+      if (CONFIG.Ignore_Msgs.includes(partnerID)) {
+        return;
+      }
+
+      // Decline all other offers (empty, invalid, etc.)
       offer.decline((errDecline) => {
         if (errDecline) {
           logError(`Error declining the trade offer : ${errDecline}`);
@@ -364,137 +282,74 @@ const main = () => {
     });
   };
 
-  /* eslint-disable no-promise-executor-return */
-  // Converts unwanted items to gems based on the Convert_To_Gems config
-  const autoGemItems = async () => {
-    try {
-      log('[AutoGem] Checking inventory for items to convert...');
-
-      const sessionID = community.getSessionID();
-      if (!sessionID) {
-        log('[AutoGem] No valid session ID yet, skipping.');
-        return;
-      }
-
-      // Wrap inventory fetch with retry
-      const inventory = await retryWithBackoff(() => getUserCommunityInvAsync(client.steamID, GEM_APP_ID, GEM_CONTEXT_ID, true)).catch((err) => {
-        logError('[AutoGem] Failed to retrieve inventory after all retries:', err.message);
-        return [];
-      });
-
-      if (inventory.length === 0) {
-        log('[AutoGem] Inventory empty or unavailable.');
-        return;
-      }
-
-      const itemsToConvert = inventory.filter((item) => {
-        const gemValue = tradeLogic.getGemValue(item);
-        return gemValue > CONFIG.Restrictions.Convert_To_Gems;
-      });
-
-      let gemmedCount = 0;
-
-      await itemsToConvert.reduce(async (previousPromise, item) => {
-        await previousPromise;
-
-        const gemValue = tradeLogic.getGemValue(item);
-
-        log(`[AutoGem] Converting ${item.market_hash_name} (${gemValue} gems)...`);
-        gemmedCount += 1;
-
-        // Wrap market grind API call with retry (max 3 attempts for a transactional call)
-        await retryWithBackoff(() => grindItemToGoo(sessionID, item), 3).catch((err) => {
-          logError(`[AutoGem] Failed to convert ${item.market_hash_name} after all retries: ${err.message}`);
-        });
-
-        await delay(1000); // Throttle request rate
-
-        return Promise.resolve();
-      }, Promise.resolve());
-
-      log(`[AutoGem] Finished converting ${gemmedCount} items this run.`);
-    } catch (err) {
-      logError('[AutoGem] Error:', err.message);
-    }
-  };
-    /* eslint-enable no-promise-executor-return */
+  // ----------------------------------------------------------
+  // EVENT LISTENERS AND MAIN LOGIC
+  // ----------------------------------------------------------
 
   // Spam Filter: checks for message spam every second
   setInterval(() => {
-    // Simplified array iteration
-    Object.keys(GlobalBotInfo.userMsgs).forEach((steamID) => {
-      if (GlobalBotInfo.userMsgs[steamID] > CONFIG.MAXMSGPERSEC) {
+    for (let i = 0; i < Object.keys(userMsgs).length; i += 1) {
+      if (userMsgs[Object.keys(userMsgs)[i]] > CONFIG.MAXMSGPERSEC) {
         client.chatMessage(
-          steamID,
+          Object.keys(userMsgs)[i],
           "Sorry but we do not like spamming. You've been removed!",
         );
-        client.removeFriend(steamID);
-        // Notify Owners using forEach as well
-        CONFIG.Owner.forEach((ownerID) => {
+        client.removeFriend(Object.keys(userMsgs)[i]);
+        for (let j = 0; j < CONFIG.Owner.length; j += 1) {
           client.chatMessage(
-            ownerID,
-            `Steam #${steamID} has been removed for spamming`,
+            CONFIG.Owner[j],
+            `Steam #${Object.keys(userMsgs)[i]} has been removed for spamming`,
           );
-        });
+        }
       }
-    });
-    GlobalBotInfo.userMsgs = {};
+    }
+    userMsgs = {};
   }, 1000);
 
-  // Load Blacklist on startup
-  loadBlacklist(CONFIG);
+  // Initial console header (License/Copyright display)
+  // Fixes max-len errors on lines 68, 73, 78, and 83.
+  log('\x1b[32m/////////////////////////////////////////////////////////////////'
+    + '//////////\x1b[0m');
+  log('\x1b[31mCopyright (C) 2025 killerboyyy777\x1b[0m');
+  log('\x1b[31mhttps://steamcommunity.com/id/klb777\x1b[0m');
+  log('\x1b[32m/////////////////////////////////////////////////////////////////'
+    + '//////////\x1b[0m');
+  log('\x1b[31m777-steam-gem-tf2key-bot Copyright (C) 2025 killerboyyy777'
+    + '\x1b[0m');
+  log('\x1b[31mThis program comes with ABSOLUTELY NO WARRANTY\x1b[0m');
+  log('\x1b[31mThis is free software, and you are welcome to redistribute it\x1b[0m');
+  log('\x1b[31munder certain conditions\x1b[0m');
+  log('\x1b[31mFor more Information Check the LICENSE File.\x1b[0m');
+  log('\x1b[32m/////////////////////////////////////////////////////////////////'
+    + '//////////\x1b[0m');
 
-  // Function to update the bot's "playing" status with the current gem count
-  const updatePlayingStatus = async () => {
-    try {
-      // Uses the retried inventory fetch
-      const INV = await getInventoryContentsAsync(client.steamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
-      let myGems = 0;
-      const MyGems = INV.filter((gem) => gem.name === 'Gems');
-      if (MyGems.length > 0) {
-        myGems = MyGems[0].amount;
-      }
-
-      const playThis = `${myGems} Gems > Buy/Sell Gems (!prices)`;
-      client.gamesPlayed(playThis, true);
-    } catch (errInv) {
-      logError('Could not load inventory for status update after retries:', errInv.message);
-    }
-  };
-
-  client.on('loggedOn', () => {
-    client.getPersonas([client.steamID], () => {
-      log('Successfully Logged Into Your Bot Account');
-      client.setPersona(1); // Set status to Online (1)
-    });
+  // Log in to Steam
+  client.logOn({
+    accountName: CONFIG.USERNAME,
+    password: CONFIG.PASSWORD,
+    twoFactorCode: SteamTotp.getAuthCode(CONFIG.SHAREDSECRET),
   });
 
+  // Handle successful Steam login
+  client.on('loggedOn', () => {
+    if (CONFIG.Owner[0]) {
+      client.getPersonas([client.steamID], () => {
+        log('Successfully Logged Into Your Bot Account');
+        client.setPersona(1); // Set status to Online (1)
+      });
+    } else {
+      client.logOff();
+    }
+  });
+
+  // Handle successful web session (required for trading and community actions)
   client.on('webSession', async (sessionID, cookies) => {
+    // Set Cookies for manager and community
     manager.setCookies(cookies);
     community.setCookies(cookies);
+
+    // Start confirmation checker for trade confirmations
     community.startConfirmationChecker(15000, CONFIG.IDENTITYSECRET);
-
-    // Populate GlobalBotInfo
-    GlobalBotInfo.clientSteamID = client.steamID.getSteamID64();
-
-    // Update the Asset ID upon Web Session start
-    await updateBotGemAssetID(GlobalBotInfo.clientSteamID);
-
-    // Define Dependencies after fetching GlobalBotInfo
-    const Dependencies = {
-      client,
-      manager,
-      community,
-      getInventoryContentsAsync,
-      getInventoryGems,
-      sendTradeOffer: (id64, keys, gems, botI, userI, msg) => sendTradeOffer(id64, keys, gems, botI, userI, msg),
-      log,
-      logError,
-      commentUser,
-    };
-
-    // Pass Dependencies, CONFIG, AND the GlobalBotInfo object by live reference
-    tradeLogic.init(Dependencies, CONFIG, GlobalBotInfo);
 
     // Initial item conversion check
     log('[AutoGem] Starting initial AutoGem check...');
@@ -507,25 +362,43 @@ const main = () => {
     }, 7 * 24 * 60 * 60 * 1000);
 
     // Accept pending friend requests
-    Object.keys(client.myFriends).forEach((steamID) => {
-      if (client.myFriends[steamID] === 2) { // Relation type 2 is 'Pending Friend Request'
-        client.addFriend(steamID);
+    for (let i = 0; i < Object.keys(client.myFriends).length; i += 1) {
+      // Friend relation type 2 is 'Pending Friend Request'
+      if (client.myFriends[Object.keys(client.myFriends)[i]] === 2) {
+        client.addFriend(Object.keys(client.myFriends)[i]);
       }
-    });
+    }
 
     // Update 'playing' message with current gem count
-    await updatePlayingStatus();
+    manager.getInventoryContents(753, 6, true, (errInv, INV) => {
+      if (errInv) {
+        logError('Could not load inventory:', errInv);
+        return;
+      }
+      let myGems = 0;
+      const MyGems = INV.filter((gem) => gem.name === 'Gems');
+      if (MyGems.length > 0) {
+        myGems = MyGems[0].amount;
+      }
+
+      const playThis = `${myGems} Gems > Buy/Sell Gems (!prices)`;
+      client.gamesPlayed(playThis, true);
+    });
   });
 
   // Handle new friend requests and send welcome message
   client.on('friendRelationship', (SENDER, REL) => {
     community.getSteamUser(SENDER, (errUser, user) => {
       if (errUser) {
-        logError(`Failure checking current friend relationship with new customer : ${errUser}`);
+        logError(
+          `Failure checking current friend relationship with new customer : ${errUser}`,
+        );
         return;
       }
       if (REL === 2) { // New friend request
-        log(`[New Friend] - ${user.name} > ${SENDER.getSteamID64()} - SteamID`);
+        log(
+          `[New Friend] - ${user.name} > ${SENDER.getSteamID64()} - SteamID`,
+        );
         client.addFriend(SENDER);
       } else if (REL === 3) { // Friend accepted
         if (CONFIG.INVITETOGROUPID) {
@@ -536,6 +409,7 @@ const main = () => {
     });
   });
 
+  // Handle session expiration
   community.on('sessionExpired', (err) => {
     if (!err) {
       log('Session Expired. Relogging.');
@@ -543,6 +417,7 @@ const main = () => {
     }
   });
 
+  // Handle new mobile trade confirmations
   community.on('newConfirmation', (CONF) => {
     log('## New confirmation.');
     community.acceptConfirmationForObject(
@@ -550,256 +425,543 @@ const main = () => {
       CONF.id,
       (errConf) => {
         if (errConf) {
-          logError(`## An error occurred while accepting confirmation: ${errConf}`);
+          logError(
+            `## An error occurred while accepting confirmation: ${errConf}`,
+          );
         } else {
           log('## Confirmation accepted.');
-          // Update playing status immediately after a confirmation (likely trade)
-          updatePlayingStatus();
         }
       },
     );
   });
 
+  // Handle new trade offers
   manager.on('newOffer', (offer) => {
     offer.getUserDetails((errDetails) => {
       if (errDetails) {
         logError(errDetails);
         return;
       }
-      log(`[New Trade Offer] From: ${offer.partner.getSteamID64()}`);
+      log(
+        `[New Trade Offer] From: ${offer.partner.getSteamID64()}`,
+      );
       processTradeOffer(offer);
     });
   });
 
   // Handle chat messages and commands
-  client.on('friendMessage', async (steamID, message) => {
-    const steamID64 = steamID.getSteamID64();
+  client.on('friendMessage', (SENDER, MSG) => {
+    const steamID64 = SENDER.getSteamID64(); // Get SteamID once
 
-    if (CONFIG.Ignore_Msgs.includes(steamID64)) return;
+    if (!CONFIG.Ignore_Msgs.includes(steamID64)) {
+      community.getSteamUser(SENDER, (errUser, user) => {
+        if (errUser) {
+          logError(
+            `Failure parsing users Steam Info. Possibly illegal ASCII letters in name OR steam failed to : ${errUser}`,
+          );
+          return;
+        }
+        log(
+          `[Incoming Chat Message] ${user.name} > ${steamID64} : ${MSG}`,
+        );
 
-    community.getSteamUser(steamID, async (errUser, user) => {
-      if (errUser) {
-        logError(`Failure parsing users Steam Info: ${errUser}`);
-        return;
-      }
-      log(`[Incoming Chat Message] ${user.name} > ${steamID64} : ${message}`);
+        // Spam counter update
+        if (userMsgs[steamID64]) {
+          userMsgs[steamID64] += 1;
+        } else {
+          userMsgs[steamID64] = 1;
+        }
 
-      // Spam counter update
-      if (GlobalBotInfo.userMsgs[steamID64]) {
-        GlobalBotInfo.userMsgs[steamID64] += 1;
-      } else {
-        GlobalBotInfo.userMsgs[steamID64] = 1;
-      }
-
-      // --- Command Handling ---
-      const normalizedMsg = message.toUpperCase().trim();
-      const parts = normalizedMsg.split(' ');
-      const command = parts[0];
-      const args = parts.slice(1).join(' ');
-
-      // ------------------------------------
-      // Admin Commands
-      // ------------------------------------
-      if (CONFIG.Owner.includes(steamID64)) {
-        switch (command) {
-          case '!ADMIN': {
-            client.chatMessage(steamID64, CONFIG.MESSAGES.ADMINHELP);
+        // --- Admin Commands ---
+        if (CONFIG.Owner.includes(steamID64)) {
+          if (MSG.toUpperCase() === '!ADMIN') {
+            client.chatMessage(SENDER, CONFIG.MESSAGES.ADMINHELP);
             return;
-          }
-          case '!PROFIT': {
-            client.chatMessage(steamID64, 'Calculating profit... (loading inventories)');
+          } if (MSG.toUpperCase() === '!PROFIT') {
+            client.chatMessage(SENDER, 'Calculating profit... (loading inventories)');
             let myGems = 0;
             let myTF2Keys = 0;
 
-            try {
-              // Uses the retried inventory fetch
-              const [gemInv, keyInv] = await Promise.all([
-                getInventoryContentsAsync(client.steamID, GEM_APP_ID, GEM_CONTEXT_ID, true),
-                getInventoryContentsAsync(client.steamID, TF2_APP_ID, TF2_CONTEXT_ID, true),
-              ]);
-
-              const MyGems = gemInv.filter((gem) => gem.name === 'Gems');
+            // 1. Get Gems
+            manager.getInventoryContents(753, 6, true, (errGems, invGems) => {
+              if (errGems) {
+                logError('[!PROFIT] Error loading gem inventory:', errGems);
+                client.chatMessage(SENDER, 'Error loading gem inventory.');
+                return;
+              }
+              const MyGems = invGems.filter((gem) => gem.name === 'Gems');
               if (MyGems.length > 0) {
                 myGems = MyGems[0].amount;
               }
 
-              myTF2Keys = keyInv.filter((item) => CONFIG.TF2_Keys.includes(item.market_hash_name)).length;
+              // 2. Get TF2 Keys
+              manager.getInventoryContents(440, 2, true, (errKeys, invKeys) => {
+                if (errKeys) {
+                  logError('[!PROFIT] Error loading TF2 inventory:', errKeys);
+                  client.chatMessage(SENDER, 'Error loading TF2 key inventory.');
+                  return;
+                }
 
-              const profitMsg = `Current stock:\n- Gems: ${myGems}\n- TF2 Keys: ${myTF2Keys}`;
-              client.chatMessage(steamID64, profitMsg);
-            } catch (err) {
-              logError('[!PROFIT] Error loading inventory after retries:', err.message);
-              client.chatMessage(steamID64, 'Error loading inventory.');
-            }
+                for (let i = 0; i < invKeys.length; i += 1) {
+                  if (CONFIG.TF2_Keys.includes(invKeys[i].market_hash_name)) {
+                    myTF2Keys += 1;
+                  }
+                }
+
+                // 3. Send Report
+                const profitMsg = `Current stock:\n- Gems: ${myGems}\n- TF2 Keys: ${myTF2Keys}`;
+                client.chatMessage(SENDER, profitMsg);
+              });
+            });
             return;
-          }
-          case '!BLOCK': {
-            const targetID = args;
-            if (SID64REGEX.test(targetID) && !CONFIG.Ignore_Msgs.includes(targetID)) {
-              if (CONFIG.Owner.includes(targetID)) {
-                client.chatMessage(steamID64, 'An admin cannot be blocked.');
+          } if (MSG.toUpperCase().startsWith('!BLOCK ')) {
+            const idToBlock = MSG.substring(7).trim();
+            if (SID64REGEX.test(idToBlock)) {
+              if (CONFIG.Owner.includes(idToBlock)) {
+                client.chatMessage(SENDER, 'An admin cannot be blocked.');
+              } else if (CONFIG.Ignore_Msgs.includes(idToBlock)) {
+                client.chatMessage(SENDER, `User ${idToBlock} is already blocked.`);
               } else {
-                CONFIG.Ignore_Msgs.push(targetID);
-                saveBlacklist(CONFIG);
-                client.chatMessage(steamID64, `User ${targetID} blocked and saved to blacklist.`);
-                log(`[Admin] User ${targetID} was blocked by ${steamID64}.`);
+                CONFIG.Ignore_Msgs.push(idToBlock);
+                client.chatMessage(SENDER, `User ${idToBlock} has been blocked for this session.`);
+                log(`[Admin] User ${idToBlock} was blocked by ${steamID64}.`);
               }
             } else {
-              client.chatMessage(steamID64, 'Usage: !BLOCK [SteamID64]. User may already be blocked or ID is invalid.');
+              client.chatMessage(SENDER, 'Invalid SteamID64 format. Use !Block [SteamID64]');
             }
             return;
-          }
-          case '!UNBLOCK': {
-            const targetID = args;
-            const initialLength = CONFIG.Ignore_Msgs.length;
-            if (SID64REGEX.test(targetID)) {
-              CONFIG.Ignore_Msgs = CONFIG.Ignore_Msgs.filter((id) => id !== targetID);
-              if (CONFIG.Ignore_Msgs.length < initialLength) {
-                saveBlacklist(CONFIG);
-                client.chatMessage(steamID64, `User ${targetID} unblocked and removed from blacklist.`);
-                log(`[Admin] User ${targetID} was unblocked by ${steamID64}.`);
+          } if (MSG.toUpperCase().startsWith('!UNBLOCK ')) {
+            const idToUnblock = MSG.substring(9).trim();
+            if (SID64REGEX.test(idToUnblock)) {
+              const index = CONFIG.Ignore_Msgs.indexOf(idToUnblock);
+              if (index > -1) {
+                CONFIG.Ignore_Msgs.splice(index, 1);
+                client.chatMessage(SENDER, `User ${idToUnblock} has been unblocked.`);
+                log(`[Admin] User ${idToUnblock} was unblocked by ${steamID64}.`);
               } else {
-                client.chatMessage(steamID64, `User ${targetID} was not found in the blacklist.`);
+                client.chatMessage(SENDER, `User ${idToUnblock} was not found in the block list.`);
               }
             } else {
-              client.chatMessage(steamID64, 'Usage: !UNBLOCK [SteamID64]');
+              client.chatMessage(SENDER, 'Invalid SteamID64 format. Use !Unblock [SteamID64]');
             }
             return;
-          }
-          case '!BROADCAST': {
-            if (args.length === 0) {
-              client.chatMessage(steamID64, 'Please provide a message. Use !Broadcast [Message]');
+          } if (MSG.toUpperCase().startsWith('!BROADCAST ')) {
+            const broadcastMsg = MSG.substring(11).trim();
+            if (broadcastMsg.length === 0) {
+              client.chatMessage(SENDER, 'Please provide a message. Use !Broadcast [Message]');
               return;
             }
-            const friendSteamIDs = Object.keys(client.myFriends);
+
             let friendCount = 0;
-            const delayMs = 500; // Throttle messages to 500ms
+            const friendSteamIDs = Object.keys(client.myFriends);
 
             log(`[Admin] Starting Broadcast from ${steamID64}...`);
             friendSteamIDs.forEach((friendID, idx) => {
-              if (client.myFriends[friendID] === 3) { // Relation 3 is 'Friend'
+              // Send only to actual friends (relation 3)
+              if (client.myFriends[friendID] === 3) {
+                // Stagger messages to avoid rate limits
                 setTimeout(() => {
-                  client.chatMessage(friendID, args);
-                }, idx * delayMs); // Stagger messages
+                  client.chatMessage(friendID, broadcastMsg);
+                }, idx * 500);
                 friendCount += 1;
               }
             });
 
-            client.chatMessage(steamID64, `Broadcast sent to ${friendCount} friends.`);
-            log(`[Admin] Broadcast sent to ${friendCount} friends: "${args}"`);
+            client.chatMessage(SENDER, `Broadcast sent to ${friendCount} friends.`);
+            log(`[Admin] Broadcast sent to ${friendCount} friends: "${broadcastMsg}"`);
             return;
           }
-          default:
-            break;
-        }
-      }
+        } // --- End Admin Commands ---
 
-      // ------------------------------------
-      // User Commands
-      // ------------------------------------
-      switch (command) {
-        case '!HELP': {
-          client.chatMessage(steamID64, CONFIG.MESSAGES.HELP);
-          break;
-        }
-        case '!PRICE':
-        case '!RATE':
-        case '!RATES':
-        case '!PRICES': {
-          const priceMsg1 = 'Sell Your: \n1 TF2 Key for Our '
-                        + `${CONFIG.Rates.SELL.TF2_To_Gems} Gems\n\nBuy Our: \n1 TF2 Key for Your `
-                        + `${CONFIG.Rates.BUY.Gems_To_TF2_Rate} Gems\n\nWe're also:\n`;
+        // --- User Commands ---
 
-          const priceMsg2 = 'Buying Your Backgrounds & emotes for '
-                        + `${CONFIG.Rates.BUY.BG_And_Emotes} Gems EACH (Flat Rate - Send offer & add correct number of my gems for auto accept.)\n`
-                        + 'Selling any of OUR Backgrounds & emotes for '
-                        + `${CONFIG.Rates.SELL.BG_And_Emotes} Gems EACH (Flat Rate - Send offer & add correct number of my gems for auto accept.)`;
-
-          client.chatMessage(steamID64, priceMsg1 + priceMsg2);
-          break;
-        }
-        case '!INFO': {
+        if (MSG.toUpperCase() === '!HELP') {
+          client.chatMessage(SENDER, CONFIG.MESSAGES.HELP);
+        } else if (
+          MSG.toUpperCase() === '!PRICE'
+          || MSG.toUpperCase() === '!RATE'
+          || MSG.toUpperCase() === '!RATES'
+          || MSG.toUpperCase() === '!PRICES'
+        ) {
+          const priceMsg1 = `Sell Your: \n1 TF2 Key for Our ${CONFIG.Rates.SELL.TF2_To_Gems} Gems\n\nBuy Our: \n1 TF2 Key for Your ${CONFIG.Rates.BUY.Gems_To_TF2_Rate} Gems\n\nWe're also:\n`;
+          const priceMsg2 = `Buying Your Backgrounds & emotes for ${CONFIG.Rates.BUY.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)\nSelling any of OUR Backgrounds & emotes for ${CONFIG.Rates.SELL.BG_And_Emotes} Gems (Send offer & add correct number of my gems for auto accept.)`;
           client.chatMessage(
-            steamID64,
-            'Bot owned by https://steamcommunity.com/id/klb777\nUse !help to see all Commands',
+            SENDER,
+            priceMsg1 + priceMsg2,
           );
-          break;
-        }
-        case '!CHECK': {
+        } else if (MSG.toUpperCase() === '!INFO') {
+          client.chatMessage(
+            SENDER,
+            'Bot owned by https://steamcommunity.com/id/klb777\n1 Use !help to see all Commands',
+          );
+        } else if (MSG.toUpperCase() === '!CHECK') {
           let theirTF2 = 0;
-          let theirGems = 0;
+          let theirGems;
 
-          try {
-            // Uses the retried inventory fetch
-            const [tf2Inv, gemInv] = await Promise.all([
-              getInventoryContentsAsync(steamID64, TF2_APP_ID, TF2_CONTEXT_ID, true),
-              getInventoryContentsAsync(steamID64, GEM_APP_ID, GEM_CONTEXT_ID, true),
-            ]);
+          // Check TF2 inventory for keys
+          manager.getUserInventoryContents(
+            steamID64,
+            440,
+            2,
+            true,
+            (errInvKeys, INV) => {
+              if (errInvKeys) {
+                logError(errInvKeys);
+                return;
+              }
+              for (let i = 0; i < INV.length; i += 1) {
+                if (CONFIG.TF2_Keys.includes(INV[i].market_hash_name)) {
+                  theirTF2 += 1;
+                }
+              }
 
-            theirTF2 = tf2Inv.filter((item) => CONFIG.TF2_Keys.includes(item.market_hash_name)).length;
-            const TheirGems = gemInv.filter((gem) => gem.name === 'Gems');
-            if (TheirGems.length > 0) {
-              theirGems = TheirGems[0].amount;
+              // Check Gems inventory
+              manager.getUserInventoryContents(
+                steamID64,
+                753,
+                6,
+                true,
+                (errInvGems, INV3) => {
+                  if (errInvGems) {
+                    logError(errInvGems);
+                    return;
+                  }
+                  const TheirGems = INV3.filter((gem) => gem.name === 'Gems');
+                  if (TheirGems.length === 0) {
+                    theirGems = 0;
+                  } else {
+                    const gem = TheirGems[0];
+                    theirGems = gem.amount;
+                  }
+
+                  let tf2Msg = '';
+                  let gemsMsg = '';
+
+                  // Suggest selling TF2 keys for gems
+                  if (theirTF2 > 0) {
+                    tf2Msg = `- I can give you ${
+                      theirTF2 * CONFIG.Rates.SELL.TF2_To_Gems
+                    } Gems for them (Use !SellTF ${theirTF2})`;
+                  }
+
+                  // Suggest buying TF2 keys with gems
+                  if (
+                    Math.floor(theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate) > 0
+                  ) {
+                    const buyableKeys = Math.floor(
+                      theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate,
+                    );
+                    const gemsForBuy = buyableKeys * CONFIG.Rates.BUY.Gems_To_TF2_Rate;
+
+                    gemsMsg = `- I can give you ${buyableKeys} TF2 Keys for Your ${gemsForBuy} Gems `
+                      + `(Use !BuyTF ${buyableKeys})`;
+                  }
+
+                  client.chatMessage(
+                    SENDER,
+                    `You have:\n\n${theirTF2} TF2 Keys\n${tf2Msg}\n`
+                    + `You have:\n\n${theirGems} Gems ${gemsMsg}`,
+                  );
+                },
+              );
+            },
+          );
+        } else if (MSG.toUpperCase().startsWith('!SELLTF')) {
+          // Command: Sell TF2 Keys for Gems
+          const n = MSG.toUpperCase().replace('!SELLTF ', '').trim();
+          const amountOfGems = parseInt(n, 10) * CONFIG.Rates.SELL.TF2_To_Gems;
+          const TheirKeys = [];
+          if (Number.isInteger(Number(n)) && Number(n) > 0) {
+            if (Number(n) <= CONFIG.Restrictions.MaxSell) {
+              const t = manager.createOffer(steamID64);
+              t.getUserDetails(async (errDetails, ME, THEM) => {
+                if (errDetails) {
+                  logError(`## An error occurred while getting trade holds : ${errDetails}`);
+                  client.chatMessage(
+                    SENDER,
+                    'An error occurred while getting your trade holds. Please Enable your Steam Guard!',
+                  );
+                  return;
+                }
+                if (ME.escrowDays === 0 && THEM.escrowDays === 0) {
+                  client.chatMessage(
+                    SENDER,
+                    `You Requested To Sell Your ${n} TF2 Keys for My ${amountOfGems} Gems`,
+                  );
+                  // Trade preparation and sending logic
+                  await delay(1500);
+                  client.chatMessage(SENDER, 'Trade Processing');
+                  await delay(1500);
+                  client.chatMessage(SENDER, 'Please hold...');
+                  await delay(1500);
+                  manager.getInventoryContents(753, 6, true, (errInvBot, MyInv) => {
+                    if (errInvBot) {
+                      client.chatMessage(
+                        SENDER,
+                        'Inventory refresh in session. Try again shortly please.',
+                      );
+                      logError(errInvBot);
+                      return;
+                    }
+                    const MyGems = MyInv.filter((gem) => gem.name === 'Gems');
+                    if (MyGems.length === 0) {
+                      // Bot has 0 gems
+                      client.chatMessage(
+                        SENDER,
+                        `Sorry, I don't have enough Gems to make this trade: 0 / ${amountOfGems}, I'll restock soon!`,
+                      );
+                      return;
+                    }
+                    const gem = MyGems[0];
+                    const gemDifference = amountOfGems - gem.amount;
+                    if (gemDifference <= 0) {
+                      // Add gems to bot's side
+                      gem.amount = amountOfGems;
+                      t.addMyItem(gem);
+
+                      // Add user's TF2 keys to their side
+                      manager.getUserInventoryContents(
+                        steamID64,
+                        440,
+                        2,
+                        true,
+                        (errInvUser, Inv) => {
+                          if (errInvUser) {
+                            logError(errInvUser);
+                            return;
+                          }
+
+                          for (let i = 0; i < Inv.length; i += 1) {
+                            if (
+                              TheirKeys.length < Number(n)
+                              && CONFIG.TF2_Keys.includes(Inv[i].market_hash_name)
+                            ) {
+                              TheirKeys.push(Inv[i]);
+                            }
+                          }
+                          if (TheirKeys.length !== Number(n)) {
+                            // User does not have enough keys
+                            if (TheirKeys.length > 0) {
+                              client.chatMessage(
+                                SENDER,
+                                `You don't have enough TF2 keys to make this trade: ${TheirKeys.length} / ${n}\n Tip: Try using !SellTF ${TheirKeys.length}`,
+                              );
+                            } else {
+                              client.chatMessage(
+                                SENDER,
+                                `You don't have enough TF2 keys to make this trade: ${TheirKeys.length} / ${n}`,
+                              );
+                            }
+                            return;
+                          }
+                          // Finalize and send trade offer
+                          t.addTheirItems(TheirKeys);
+                          t.setMessage('Your Gems Are Ready! Enjoy :)');
+                          t.send((errSend) => {
+                            if (errSend) {
+                              client.chatMessage(
+                                SENDER,
+                                'Inventory refresh in session. Try again shortly please.',
+                              );
+                              logError(
+                                `## An error occurred while sending trade: ${errSend}`,
+                              );
+                            } else {
+                              log('[!SellTF] Trade Offer Sent!');
+                            }
+                          });
+                        },
+                      );
+                      return;
+                    }
+                    // Bot does not have enough gems (with suggestion for partial trade)
+                    const sellableKeys = Math.floor(
+                      gem.amount / CONFIG.Rates.SELL.TF2_To_Gems,
+                    );
+
+                    if (sellableKeys > 0) {
+                      client.chatMessage(
+                        SENDER,
+                        `Sorry, I don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}\nTip: Try using !SellTF ${sellableKeys}`,
+                      );
+                    } else {
+                      client.chatMessage(
+                        SENDER,
+                        `Sorry, I don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}, I'll restock soon!`,
+                      );
+                    }
+                  });
+                  return;
+                }
+                client.chatMessage(
+                  SENDER,
+                  'Make sure you do not have any Trade Holds.',
+                );
+              });
+              return;
             }
-
-            let tf2Msg = '';
-            let gemsMsg = '';
-
-            if (theirTF2 > 0) {
-              tf2Msg = `- I can give you ${
-                theirTF2 * CONFIG.Rates.SELL.TF2_To_Gems
-              } Gems for them (Use !SellTF ${theirTF2})`;
-            }
-
-            const buyableKeys = Math.floor(
-              theirGems / CONFIG.Rates.BUY.Gems_To_TF2_Rate,
-            );
-            if (buyableKeys > 0) {
-              const gemsForBuy = buyableKeys * CONFIG.Rates.BUY.Gems_To_TF2_Rate;
-              gemsMsg = `- I can give you ${buyableKeys} TF2 Keys for Your ${gemsForBuy} Gems (Use !BuyTF ${buyableKeys})`;
-            }
-
             client.chatMessage(
-              steamID64,
-              `You have:\n\n${theirTF2} TF2 Keys\n${tf2Msg}\n`
-                            + `You have:\n\n${theirGems} Gems ${gemsMsg}`,
+              SENDER,
+              `You can only Sell up to ${CONFIG.Restrictions.MaxSell} TF2 Keys to me at a time!`,
             );
-          } catch (err) {
-            logError('[!CHECK] Error loading user inventory after retries:', err.message);
+          } else {
             client.chatMessage(
-              steamID64,
-              "I can't load your Steam Inventory. Is it private? Please try again.",
+              SENDER,
+              'Please provide a valid amount of Keys -> !SellTF [Number of Keys]',
             );
           }
-          break;
+        } else if (MSG.toUpperCase().startsWith('!BUYTF')) {
+          // Command: Buy TF2 Keys for Gems
+          const n = MSG.toUpperCase().replace('!BUYTF ', '').trim();
+          const amountOfGems = parseInt(n, 10) * CONFIG.Rates.BUY.Gems_To_TF2_Rate;
+          const MyKeys = [];
+          if (Number.isInteger(Number(n)) && Number(n) > 0) {
+            if (Number(n) <= CONFIG.Restrictions.MaxBuy) {
+              const t = manager.createOffer(steamID64);
+              t.getUserDetails(async (errDetails, ME, THEM) => {
+                if (errDetails) {
+                  logError(`## An error occurred while getting trade holds: ${errDetails}`);
+                  client.chatMessage(
+                    SENDER,
+                    'An error occurred while getting your trade holds. Please Enable your Steam Guard!',
+                  );
+                  return;
+                }
+                if (ME.escrowDays === 0 && THEM.escrowDays === 0) {
+                  client.chatMessage(
+                    SENDER,
+                    `You Requested To Buy My ${n} TF2 Keys for your ${amountOfGems} Gems`,
+                  );
+                  // Trade preparation and sending logic
+                  await delay(1500);
+                  client.chatMessage(SENDER, 'Trade Processing');
+                  await delay(1500);
+                  client.chatMessage(SENDER, 'Please hold...');
+                  await delay(1500);
+                  manager.getUserInventoryContents(
+                    steamID64,
+                    753,
+                    6,
+                    true,
+                    (errInvUser, INV) => {
+                      if (errInvUser) {
+                        logError(errInvUser);
+                        const errMsg = "I can't load your Steam Inventory. Is it private? \n If it's not private, then please try again in a few seconds.";
+                        client.chatMessage(
+                          SENDER,
+                          errMsg,
+                        );
+                        return;
+                      }
+                      const TheirGems = INV.filter((gem) => gem.name === 'Gems');
+                      if (TheirGems.length === 0) {
+                        // User has 0 gems
+                        client.chatMessage(
+                          SENDER,
+                          `You don't have enough Gems to make this trade: 0 / ${amountOfGems}`,
+                        );
+                        return;
+                      }
+                      const gem = TheirGems[0];
+                      const gemDifference = amountOfGems - gem.amount;
+                      if (gemDifference <= 0) {
+                        // Add required gems from user to their side
+                        gem.amount = amountOfGems;
+                        t.addTheirItem(gem);
+
+                        // Add bot's TF2 keys to its side
+                        manager.getInventoryContents(
+                          440,
+                          2,
+                          true,
+                          (errInvBot, MyInv) => {
+                            if (errInvBot) {
+                              logError(errInvBot);
+                              return;
+                            }
+
+                            for (let i = 0; i < MyInv.length; i += 1) {
+                              if (
+                                MyKeys.length < Number(n)
+                                && CONFIG.TF2_Keys.includes(MyInv[i].market_hash_name)
+                              ) {
+                                MyKeys.push(MyInv[i]);
+                              }
+                            }
+                            if (MyKeys.length !== Number(n)) {
+                              // Bot does not have enough keys
+                              if (MyKeys.length > 0) {
+                                client.chatMessage(
+                                  SENDER,
+                                  `Sorry, I don't have enough TF2 keys to make this trade: ${MyKeys.length} / ${n}\nTip: Try using !BuyTF ${MyKeys.length}`,
+                                );
+                              } else {
+                                client.chatMessage(
+                                  SENDER,
+                                  `Sorry, I don't have enough TF2 keys to make this trade: ${MyKeys.length} / ${n}, I'll restock soon!`,
+                                );
+                              }
+                              return;
+                            }
+                            // Finalize and send trade offer
+                            t.addMyItems(MyKeys);
+                            t.setMessage('Enjoy your TF2 Keys :)');
+                            t.send((errSend) => {
+                              if (errSend) {
+                                client.chatMessage(
+                                  SENDER,
+                                  'Inventory refresh in session. Try again shortly please.',
+                                );
+                                logError(
+                                  `## An error occurred while sending trade: ${errSend}`,
+                                );
+                              } else {
+                                log('[!BuyTF] Trade Offer Sent!');
+                              }
+                            });
+                          },
+                        );
+                        return;
+                      }
+                      // User does not have enough gems (with suggestion for partial trade)
+                      const buyableKeys = Math.floor(
+                        gem.amount / CONFIG.Rates.BUY.Gems_To_TF2_Rate,
+                      );
+                      if (buyableKeys > 0) {
+                        client.chatMessage(
+                          SENDER,
+                          `You don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}\n`
+                          + `Tip: Try using !BuyTF ${buyableKeys}`,
+                        );
+                      } else {
+                        client.chatMessage(
+                          SENDER,
+                          `You don't have enough Gems to make this trade: ${gem.amount} / ${amountOfGems}`,
+                        );
+                      }
+                    },
+                  );
+                  return;
+                }
+                client.chatMessage(
+                  SENDER,
+                  'Make sure you do not have any Trade Holds.',
+                );
+              });
+              return;
+            }
+            client.chatMessage(
+              SENDER,
+              `You can only buy up to ${CONFIG.Restrictions.MaxBuy} TF2 Keys From me at a time!`,
+            );
+          } else {
+            client.chatMessage(
+              SENDER,
+              'Please provide a valid amount of Keys -> !BuyTF [Number of Keys]',
+            );
+          }
         }
-        case '!SELLTF': {
-          tradeLogic.handleSellTF(steamID64, args);
-          break;
-        }
-        case '!BUYTF': {
-          tradeLogic.handleBuyTF(steamID64, args);
-          break;
-        }
-        default:
-          break;
-      }
-    });
+      });
+    }
   });
-};
-
-// Initial console header (License/Copyright display) - placed before execution
-log(`
-\x1b[32m////////////////////////////////////////////////////////////////////////////////////////////////////\x1b[0m
-\x1b[31mCopyright (C) 2025 killerboyyy777\x1b[0m
-\x1b[31mhttps://steamcommunity.com/id/klb777\x1b[0m
-\x1b[32m////////////////////////////////////////////////////////////////////////////////////////////////////\x1b[0m
-\x1b[31m777-steam-gem-tf2key-bot Copyright (C) 2025 killerboyyy777\x1b[0m
-\x1b[31mThis program comes with ABSOLUTELY NO WARRANTY\x1b[0m
-\x1b[31mThis is free software, and you are welcome to redistribute it\x1b[0m
-\x1b[31munder certain conditions\x1b[0m
-\x1b[31mFor more Information Check the LICENSE File.\x1b[0m
-\x1b[32m////////////////////////////////////////////////////////////////////////////////////////////////////\x1b[0m
-`);
-
-main();
+}
