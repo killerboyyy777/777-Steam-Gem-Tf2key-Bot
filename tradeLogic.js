@@ -4,7 +4,7 @@
 // Internal variables to store helper functions and global bot info
 let Helpers = {};
 // CRITICAL FIX: Renamed to hold the live reference from index.js
-let GlobalBotInfoRef = {}; 
+let GlobalBotInfoRef = {};
 let configRef = {};
 const TF2_APP_ID = 440;
 const TF2_CONTEXT_ID = 2;
@@ -20,7 +20,7 @@ const GEM_CONTEXT_ID = 6;
 const init = (dependencies, config, globalBotInfoRef) => {
   Helpers = dependencies;
   // Store the live reference
-  GlobalBotInfoRef = globalBotInfoRef; 
+  GlobalBotInfoRef = globalBotInfoRef;
   configRef = config;
 };
 
@@ -111,10 +111,10 @@ const handleSellTF = async (senderID64, args) => {
     const userTF2Inv = await Helpers.getInventoryContentsAsync(senderID64, TF2_APP_ID, TF2_CONTEXT_ID, true);
     // Filter out blacklisted keys
     const userKeys = userTF2Inv.filter((item) => (
-      configRef.TF2_Keys.includes(item.market_hash_name) 
+      configRef.TF2_Keys.includes(item.market_hash_name)
       && !isRestrictedItem(item)
     ));
-    
+
     if (userKeys.length < n) {
       const lowKeyMsg = userKeys.length > 0
         ? `You don't have enough TF2 keys: ${userKeys.length} / ${n}. Tip: Try using !SellTF ${userKeys.length}`
@@ -125,7 +125,7 @@ const handleSellTF = async (senderID64, args) => {
 
     // 3. Prepare Items
     const keysToSend = userKeys.slice(0, n);
-    
+
     // Bot's Gem item (Uses GlobalBotInfoRef)
     const botItems = [{
       appid: GEM_APP_ID,
@@ -133,26 +133,25 @@ const handleSellTF = async (senderID64, args) => {
       assetid: GlobalBotInfoRef.botGemAssetID,
       amount: amountOfGems,
     }];
-    
+
     // User's items
     const userItems = keysToSend;
 
     // 4. Send Trade Offer
     const message = `Selling ${n} TF2 Keys for ${amountOfGems} Gems. Thanks for trading!`;
     const tradeSent = await Helpers.sendTradeOffer(senderID64, n, amountOfGems, botItems, userItems, message);
-    
+
     if (tradeSent) {
       Helpers.client.chatMessage(
         senderID64,
         'Trade Offer Sent! Please check your Steam Mobile App to accept it.',
       );
     }
-
   } catch (err) {
     Helpers.logError(`[SellTF Handler] Error: ${err.message}`);
     Helpers.client.chatMessage(
       senderID64,
-      "An unexpected error occurred while processing your request. Please try again or check my inventory status.",
+      'An unexpected error occurred while processing your request. Please try again or check my inventory status.',
     );
   }
 };
@@ -188,7 +187,7 @@ const handleBuyTF = async (senderID64, args) => {
     // 1. Check Bot's TF2 Keys
     const botTF2Inv = await Helpers.getInventoryContentsAsync(GlobalBotInfoRef.clientSteamID, TF2_APP_ID, TF2_CONTEXT_ID, true);
     const botKeys = botTF2Inv.filter((item) => (
-      configRef.TF2_Keys.includes(item.market_hash_name) 
+      configRef.TF2_Keys.includes(item.market_hash_name)
       && !isRestrictedItem(item)
     ));
 
@@ -216,15 +215,15 @@ const handleBuyTF = async (senderID64, args) => {
 
     // 3. Prepare Items
     const keysToGive = botKeys.slice(0, n);
-    
+
     // User's Gem item (needs their asset ID, which must be fetched)
     const userGemInv = await Helpers.getInventoryContentsAsync(senderID64, GEM_APP_ID, GEM_CONTEXT_ID, true);
     const userGemItem = userGemInv.find((item) => item.name === 'Gems');
-    
+
     if (!userGemItem || userGemItem.amount < amountOfGems) {
-        // This is a double-check, but helpful if inventory refreshed in between checks
-        Helpers.client.chatMessage(senderID64, "I couldn't verify you have the required Gems right now. Please try again.");
-        return;
+      // This is a double-check, but helpful if inventory refreshed in between checks
+      Helpers.client.chatMessage(senderID64, "I couldn't verify you have the required Gems right now. Please try again.");
+      return;
     }
 
     const userItems = [{
@@ -233,7 +232,7 @@ const handleBuyTF = async (senderID64, args) => {
       assetid: userGemItem.assetid,
       amount: amountOfGems,
     }];
-    
+
     // Bot's items
     const botItems = keysToGive;
 
@@ -247,12 +246,11 @@ const handleBuyTF = async (senderID64, args) => {
         'Trade Offer Sent! Please check your Steam Mobile App to accept it.',
       );
     }
-    
   } catch (err) {
     Helpers.logError(`[BuyTF Handler] Error: ${err.message}`);
     Helpers.client.chatMessage(
       senderID64,
-      "An unexpected error occurred while processing your request. Please try again or check my inventory status.",
+      'An unexpected error occurred while processing your request. Please try again or check my inventory status.',
     );
   }
 };
@@ -279,7 +277,7 @@ const buyBgsAndEmotes = async (offer) => {
 
   // 1. Calculate required gems
   const calculatedGems = userItems.length * flatRate;
-  
+
   if (userItems.length === 0) {
     Helpers.client.chatMessage(
       partnerID,
@@ -288,23 +286,23 @@ const buyBgsAndEmotes = async (offer) => {
     offer.decline();
     return;
   }
-  
+
   // 2. Extract bot's offered items (should only be a single stack of gems)
   let botGems = 0;
   if (botItems.length === 1 && botItems[0].name === 'Gems') {
-      botGems = botItems[0].amount;
+    botGems = botItems[0].amount;
   }
 
   // 3. Verify trade contents
   if (botItems.length !== 1 || botItems[0].name !== 'Gems') {
-      Helpers.client.chatMessage(
-        partnerID,
-        'Trade declined. Please offer ONLY the correct amount of Gems from my inventory (The bot gives Gems, you give items).',
-      );
-      offer.decline();
-      return;
+    Helpers.client.chatMessage(
+      partnerID,
+      'Trade declined. Please offer ONLY the correct amount of Gems from my inventory (The bot gives Gems, you give items).',
+    );
+    offer.decline();
+    return;
   }
-  
+
   // 4. Verify Gem Amount
   if (botGems !== calculatedGems) {
     Helpers.client.chatMessage(
@@ -369,7 +367,7 @@ const sellBgsAndEmotes = async (offer) => {
 
   // 1. Calculate required gems
   const calculatedGems = botItems.length * flatRate;
-  
+
   if (botItems.length === 0) {
     Helpers.client.chatMessage(
       partnerID,
@@ -378,21 +376,21 @@ const sellBgsAndEmotes = async (offer) => {
     offer.decline();
     return;
   }
-  
+
   // 2. Extract user's offered items (should only be a single stack of gems)
   let userGems = 0;
   if (userItems.length === 1 && userItems[0].name === 'Gems') {
-      userGems = userItems[0].amount;
+    userGems = userItems[0].amount;
   }
-  
+
   // 3. Verify trade contents
   if (userItems.length !== 1 || userItems[0].name !== 'Gems') {
-      Helpers.client.chatMessage(
-        partnerID,
-        'Trade declined. Please offer ONLY the correct amount of Gems.',
-      );
-      offer.decline();
-      return;
+    Helpers.client.chatMessage(
+      partnerID,
+      'Trade declined. Please offer ONLY the correct amount of Gems.',
+    );
+    offer.decline();
+    return;
   }
 
   // 4. Verify Gem Amount
@@ -404,7 +402,7 @@ const sellBgsAndEmotes = async (offer) => {
     offer.decline();
     return;
   }
-  
+
   // 5. Secondary check for the user's current Gem stock (for robustness)
   try {
     const currentUserGems = await Helpers.getInventoryGems(partnerID);
@@ -440,7 +438,6 @@ const sellBgsAndEmotes = async (offer) => {
     Helpers.commentUser(partnerID);
   });
 };
-
 
 module.exports = {
   init,

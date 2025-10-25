@@ -15,7 +15,7 @@ module.exports = {
   SHAREDSECRET: '',
 
   INVITETOGROUPID: '103582791474038795', // Steam Group ID, where new friends are invited
-  STEAMAPIKEY: '', 
+  STEAMAPIKEY: '',
 
   MAXMSGPERSEC: 3, // Max messages allowed per second before user is blocked
   Owner: ['', ''], // [Bot SteamID64, Admin SteamID64, ...]
@@ -88,5 +88,5 @@ Just start a Trade Offer with me and enter any/ all Emoticons/Backgrounds you wo
   },
   TF2_Keys: [
     'Mann Co. Supply Crate Key', // List of TF2 Key names
-  ]
+  ],
 };
