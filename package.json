@@ -1,6 +1,6 @@
 {
   "name": "777-steam-gem-tf2key-bot",
-  "version": "3.0.0",
+  "version": "1.0.0",
   "description": "An advanced Steam trading bot for automatically handling Gems, TF2-Keys, Emotes, and Backgrounds with price management and profit tracking.",
   "main": "index.js",
   "author": {
