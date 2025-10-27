@@ -82,5 +82,5 @@ Every contribution is highly appreciated!
 
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
 
-Based on work by **mfw** (https://steamcommunity.com/id/mfwBan).
+Based on work by **mfw** (https://steamcommunity.com/id/ndevs).
 Modifications © 2025 **killerboy777** (https://steamcommunity.com/id/klb777).
