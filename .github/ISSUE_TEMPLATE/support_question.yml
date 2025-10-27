@@ -1,5 +1,5 @@
 name: ❓ Support / Usage Question
-about: Ask a question about the bot's usage, configuration, or ask for general support.
+description: Ask a question about the bot's usage, configuration, or ask for general support.
 labels: ["question"]
 assignees: "killerboyyy777"
 title: "[QUESTION]: Brief summary of your question"
