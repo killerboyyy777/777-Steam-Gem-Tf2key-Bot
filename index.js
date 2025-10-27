@@ -6,7 +6,7 @@
 // © 2025 killerboy777
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // -------------------------------------------------------------
-// index.js
+
 const SteamUser = require('steam-user');
 const SteamCommunity = require('steamcommunity');
 const TradeOfferManager = require('steam-tradeoffer-manager');
@@ -29,7 +29,7 @@ const GEM_CONTEXT_ID = 6;
 const BLACKLIST_FILE = 'blacklist.json';
 const SID64REGEX = /^[0-9]{17}$/;
 
-// NEU: Global Bot Info structure
+//Global Bot Info
 const GlobalBotInfo = {
   clientSteamID: null,
   userMsgs: {},
@@ -149,6 +149,7 @@ const main = () => {
   // Run the check before initializing other components
   checkConfig();
 
+  // --- Steam Client and TradeOfferManager Setup ---
   const client = new SteamUser();
   const manager = new TradeOfferManager({
     language: 'en',
@@ -177,6 +178,7 @@ const main = () => {
     });
   });
 
+  
   const getInventoryGems = async (steamID) => {
     try {
       // This internally uses the retried getInventoryContentsAsync
@@ -200,6 +202,7 @@ const main = () => {
      * @param {object} item - The item to grind.
      * @returns {Promise<object>} The HTTP response object.
      */
+
   const grindItemToGoo = (sessionID, item) => new Promise((resolve, reject) => {
     community.httpRequestPost(
       {
@@ -223,9 +226,8 @@ const main = () => {
 
   // --- CORE TRADE LOGIC ---
 
-  /**
-     * Sends a structured trade offer after checking for holds and items.
-     */
+
+     //Sends a structured trade offer after checking for holds and items.
   const sendTradeOffer = async (senderID64, keyAmount, gemAmount, botItems, userItems, message) => {
     const t = manager.createOffer(senderID64);
 
@@ -287,7 +289,7 @@ const main = () => {
 }
   };
 
-  // Placeholder for commentUser
+  // Comments on user profile after trade
   const commentUser = (steamID64) => {
     if (CONFIG.Comment_After_Trade) {
       community.postUserComment(steamID64, CONFIG.Comment_After_Trade, (err) => {
@@ -300,9 +302,8 @@ const main = () => {
     }
   };
 
-  /**
-     * Processes incoming trade offers by checking type and calling tradeLogic handlers.
-     */
+
+//Processes incoming trade offers by checking type and calling tradeLogic handlers.
   const processTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
 
@@ -367,7 +368,7 @@ const main = () => {
   };
 
   /* eslint-disable no-promise-executor-return */
-  // Converts unwanted items to gems based on the Convert_To_Gems config
+  // Converts unwanted items to gems
   const autoGemItems = async () => {
     try {
       log('[AutoGem] Checking inventory for items to convert...');
@@ -431,7 +432,7 @@ const main = () => {
           "Sorry but we do not like spamming. You've been removed!",
         );
         client.removeFriend(steamID);
-        // Notify Owners using forEach as well
+        // Notify Owners
         CONFIG.Owner.forEach((ownerID) => {
           client.chatMessage(
             ownerID,
@@ -545,6 +546,7 @@ const main = () => {
     }
   });
 
+  //Code to accept trade confirmations
   community.on('newConfirmation', (CONF) => {
     log('## New confirmation.');
     community.acceptConfirmationForObject(
@@ -562,6 +564,7 @@ const main = () => {
     );
   });
 
+  //Detects new trade offers and processes them
   manager.on('newOffer', (offer) => {
     offer.getUserDetails((errDetails) => {
       if (errDetails) {
@@ -723,7 +726,7 @@ const main = () => {
         case '!INFO': {
           client.chatMessage(
             steamID64,
-            'Bot owned by https://steamcommunity.com/id/klb777\nUse !help to see all Commands',
+            `777-Steam-Gem-Tf2key-Bot v${VERSION}\nI trade TF2 Keys for Gems and other items.\nCreated by: https://steamcommunity.com/id/klb777\nType !prices to see rates or !help for all commands.`,
           );
           break;
         }
