@@ -82,5 +82,5 @@ Every contribution is highly appreciated!
 
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
 
-Inspired by work from **mfw** (https://steamcommunity.com/id/ndevs).
-Recoded and Maintained © 2025 **killerboy777** (https://steamcommunity.com/id/klb777).
+Inspired by work from mfw (https://steamcommunity.com/id/ndevs).
+Recoded and Maintained © 2025 killerboy777 (https://steamcommunity.com/id/klb777).
