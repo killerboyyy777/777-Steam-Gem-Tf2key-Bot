@@ -11,7 +11,7 @@ const SteamUser = require('steam-user');
 const SteamCommunity = require('steamcommunity');
 const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamTotp = require('steam-totp');
-const fs = require('fs');
+const fs = require('fs').promises;
 const util = require('util');
 
 // --- Global Constants and Setup ---
@@ -32,7 +32,6 @@ const SID64REGEX = /^[0-9]{17}$/;
 // NEU: Global Bot Info structure
 const GlobalBotInfo = {
   clientSteamID: null,
-  botGemAssetID: null,
   userMsgs: {},
 };
 
@@ -138,9 +137,9 @@ const loadBlacklist = (config) => {
 };
 
 // Save the Blacklist to the file.
-const saveBlacklist = (config) => {
+const saveBlacklist = async (config) => {
   try {
-    fs.writeFileSync(BLACKLIST_FILE, JSON.stringify(config.Ignore_Msgs, null, 2), 'utf8');
+    await fs.writeFile(BLACKLIST_FILE, JSON.stringify(config.Ignore_Msgs, null, 2), 'utf8');
   } catch (error) {
     logError(`[FATAL] Error saving blacklist: ${error.message}`);
   }
@@ -193,26 +192,6 @@ const main = () => {
   };
 
   const getUserCommunityInvAsync = util.promisify(community.getUserInventoryContents).bind(community);
-
-  // Function to fetch and save the Bot's Gem Asset ID
-  const updateBotGemAssetID = async (clientSteamID) => {
-    try {
-      // Uses the retried inventory fetch
-      const userGemInv = await getInventoryContentsAsync(clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
-      const botGemItem = userGemInv.find((item) => item.name === 'Gems');
-
-      if (botGemItem) {
-        GlobalBotInfo.botGemAssetID = botGemItem.assetid;
-        log(`[INFO] Successfully updated Bot Gem Asset ID: ${botGemItem.assetid}`);
-      } else {
-        GlobalBotInfo.botGemAssetID = null;
-        logError('[FATAL] Bot has no Gems in inventory. Cannot sell gems.');
-      }
-    } catch (err) {
-      logError(`[FATAL] Error updating Bot Gem Asset ID after retries: ${err.message}`);
-      GlobalBotInfo.botGemAssetID = null;
-    }
-  };
 
   // --- MARKET GRIND HELPER (For AutoGem) ---
   /**
@@ -282,15 +261,30 @@ const main = () => {
 
       log(`[Trade Sent] Offer for ${keyAmount} Keys sent to ${senderID64}`);
       return true;
-    } catch (err) {
-      // Handle common errors like inventory refresh or failed send
-      logError(`[Trade Failed] Error sending offer to ${senderID64}: ${err.message}`);
-      client.chatMessage(
-        senderID64,
-        'An error occurred while preparing or sending the trade. Please try again in a few seconds.',
-      );
-      return false;
+} catch (err) {
+  logError(`[Trade Failed] Error sending offer to ${senderID64}: ${err.message}`);
+
+  let userMessage = 'An error occurred while preparing or sending the trade. Please try again in a few seconds.';
+
+  // Check for EResult codes
+  if (err.eresult) {
+    switch (err.eresult) {
+      case 15: // k_EResultAccessDenied
+      case 16: // k_EResultInvalidAccount
+        userMessage = "I can't send you a trade. Is your inventory set to public?";
+        break;
+      case 25: // k_EResultLimitExceeded
+        userMessage = 'It looks like your inventory is full. Please make space and try again.';
+        break;
+      case 26: // k_EResultRevoked (often means trade ban or escrow)
+        userMessage = 'There is an issue with your account (e.g., trade ban or escrow). I cannot send a trade.';
+        break;
     }
+  }
+
+  client.chatMessage(senderID64, userMessage);
+  return false;
+}
   };
 
   // Placeholder for commentUser
@@ -648,7 +642,7 @@ const main = () => {
                 client.chatMessage(steamID64, 'An admin cannot be blocked.');
               } else {
                 CONFIG.Ignore_Msgs.push(targetID);
-                saveBlacklist(CONFIG);
+                await saveBlacklist(CONFIG);
                 client.chatMessage(steamID64, `User ${targetID} blocked and saved to blacklist.`);
                 log(`[Admin] User ${targetID} was blocked by ${steamID64}.`);
               }
@@ -663,7 +657,7 @@ const main = () => {
             if (SID64REGEX.test(targetID)) {
               CONFIG.Ignore_Msgs = CONFIG.Ignore_Msgs.filter((id) => id !== targetID);
               if (CONFIG.Ignore_Msgs.length < initialLength) {
-                saveBlacklist(CONFIG);
+                await saveBlacklist(CONFIG);
                 client.chatMessage(steamID64, `User ${targetID} unblocked and removed from blacklist.`);
                 log(`[Admin] User ${targetID} was unblocked by ${steamID64}.`);
               } else {
