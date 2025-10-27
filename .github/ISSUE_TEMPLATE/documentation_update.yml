@@ -1,5 +1,5 @@
-name: "📖 Documentation / Wiki Update"
-description: "Suggest an improvement, fix a typo, or update the Wiki or README."
+name: 📖 Documentation / Wiki Update
+description: Suggest an improvement, fix a typo, or update the Wiki or README.
 labels: ["documentation"]
 assignees: ["killerboyyy777"]
 title: "[DOCS]: Brief description of the documentation change"
