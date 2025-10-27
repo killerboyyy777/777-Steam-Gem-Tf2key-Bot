@@ -1,11 +1,45 @@
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+name: ✨ Feature Request
+about: Suggest a new feature or enhancement for the bot.
+labels: ["enhancement"]
+assignees: "killerboyyy777"
+title: "[FEATURE]: Brief summary of the feature"
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Suggestion
+        Thank you for suggesting an improvement! Please describe the problem you're solving and the solution you envision.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+  - type: textarea
+    id: problem
+    attributes:
+      label: 1. Is your feature request related to a problem? Please describe.
+      description: A clear and concise description of what the problem is. Ex. "I'm always frustrated when I have to manually update my rates across multiple config files."
+      placeholder: I am frustrated because...
+    validations:
+      required: false
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+  - type: textarea
+    id: solution
+    attributes:
+      label: 2. Describe the solution you'd like
+      description: A clear and concise description of what you want to happen. Be specific about expected behavior and commands (if applicable).
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 3. Describe alternatives you've considered
+      description: A clear and concise description of any alternative solutions or existing features you've considered that do not fully meet your needs.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 4. Additional context
+      description: Add any other context, technical details, or screenshots about the feature request here.
+    validations:
+      required: false
