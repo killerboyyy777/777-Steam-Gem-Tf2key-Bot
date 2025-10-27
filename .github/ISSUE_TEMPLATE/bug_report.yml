@@ -1,5 +1,5 @@
 name: "🐛 Bug Report"
-about: "Report a bug or an unexpected error in the Steam-Card-Bot-PRO."
+description: "Report a bug or an unexpected error in the Steam-Card-Bot-PRO."
 labels: ["bug"]
 assignees: ["killerboyyy777"]
 title: "[BUG]: Short description of the issue"
