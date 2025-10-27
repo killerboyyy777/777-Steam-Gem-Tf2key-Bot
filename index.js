@@ -29,7 +29,7 @@ const GEM_CONTEXT_ID = 6;
 const BLACKLIST_FILE = 'blacklist.json';
 const SID64REGEX = /^[0-9]{17}$/;
 
-//Global Bot Info
+// Global Bot Info
 const GlobalBotInfo = {
   clientSteamID: null,
   userMsgs: {},
@@ -178,7 +178,6 @@ const main = () => {
     });
   });
 
-  
   const getInventoryGems = async (steamID) => {
     try {
       // This internally uses the retried getInventoryContentsAsync
@@ -226,8 +225,7 @@ const main = () => {
 
   // --- CORE TRADE LOGIC ---
 
-
-     //Sends a structured trade offer after checking for holds and items.
+  // Sends a structured trade offer after checking for holds and items.
   const sendTradeOffer = async (senderID64, keyAmount, gemAmount, botItems, userItems, message) => {
     const t = manager.createOffer(senderID64);
 
@@ -263,30 +261,33 @@ const main = () => {
 
       log(`[Trade Sent] Offer for ${keyAmount} Keys sent to ${senderID64}`);
       return true;
-} catch (err) {
-  logError(`[Trade Failed] Error sending offer to ${senderID64}: ${err.message}`);
+    } catch (err) {
+      logError(`[Trade Failed] Error sending offer to ${senderID64}: ${err.message}`);
 
-  let userMessage = 'An error occurred while preparing or sending the trade. Please try again in a few seconds.';
+      let userMessage = 'An error occurred while preparing or sending the trade. Please try again in a few seconds.';
 
-  // Check for EResult codes
-  if (err.eresult) {
-    switch (err.eresult) {
-      case 15: // k_EResultAccessDenied
-      case 16: // k_EResultInvalidAccount
-        userMessage = "I can't send you a trade. Is your inventory set to public?";
-        break;
-      case 25: // k_EResultLimitExceeded
-        userMessage = 'It looks like your inventory is full. Please make space and try again.';
-        break;
-      case 26: // k_EResultRevoked (often means trade ban or escrow)
-        userMessage = 'There is an issue with your account (e.g., trade ban or escrow). I cannot send a trade.';
-        break;
+      // Check for EResult codes
+      if (err.eresult) {
+        switch (err.eresult) {
+          case 15: // k_EResultAccessDenied
+          case 16: // k_EResultInvalidAccount
+            userMessage = "I can't send you a trade. Is your inventory set to public?";
+            break;
+          case 25: // k_EResultLimitExceeded
+            userMessage = 'It looks like your inventory is full. Please make space and try again.';
+            break;
+          case 26: // k_EResultRevoked (often means trade ban or escrow)
+            userMessage = 'There is an issue with your account (e.g., trade ban or escrow). I cannot send a trade.';
+            break;
+          default:
+            userMessage = `I received an unknown error from Steam (${err.eresult}). Please try again later.`;
+            break;
+        }
+      }
+
+      client.chatMessage(senderID64, userMessage);
+      return false;
     }
-  }
-
-  client.chatMessage(senderID64, userMessage);
-  return false;
-}
   };
 
   // Comments on user profile after trade
@@ -302,8 +303,7 @@ const main = () => {
     }
   };
 
-
-//Processes incoming trade offers by checking type and calling tradeLogic handlers.
+  // Processes incoming trade offers by checking type and calling tradeLogic handlers.
   const processTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
 
@@ -465,6 +465,22 @@ const main = () => {
     }
   };
 
+  const updateBotGemAssetID = async (steamID) => {
+    try {
+      const inv = await getInventoryContentsAsync(steamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
+      const gemItem = inv.find((item) => item.name === 'Gems');
+
+      if (gemItem) {
+        GlobalBotInfo.botGemAssetID = gemItem.assetid;
+        log(`[INIT] Bot Gem AssetID updated: ${GlobalBotInfo.botGemAssetID}`);
+      } else {
+        log('[INIT] No gem stack found in the bot\'s inventory.');
+      }
+    } catch (error) {
+      logError(`[INIT] Failed to update bot gem assetID after retries: ${error.message}`);
+    }
+  };
+
   client.on('loggedOn', () => {
     client.getPersonas([client.steamID], () => {
       log('Successfully Logged Into Your Bot Account');
@@ -546,7 +562,7 @@ const main = () => {
     }
   });
 
-  //Code to accept trade confirmations
+  // Code to accept trade confirmations
   community.on('newConfirmation', (CONF) => {
     log('## New confirmation.');
     community.acceptConfirmationForObject(
@@ -564,7 +580,7 @@ const main = () => {
     );
   });
 
-  //Detects new trade offers and processes them
+  // Detects new trade offers and processes them
   manager.on('newOffer', (offer) => {
     offer.getUserDetails((errDetails) => {
       if (errDetails) {

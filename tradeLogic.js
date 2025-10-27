@@ -123,25 +123,25 @@ const handleSellTF = async (senderID64, args) => {
 
     // 3. Prepare Items
     const keysToSend = userKeys.slice(0, n);
-    
-    //Fetch the bot's current gem assetid
+
+    // Fetch the bot's current gem assetid
     const botGemInv = await Helpers.getInventoryContentsAsync(GlobalBotInfoRef.clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
     const botGemItem = botGemInv.find((item) => item.name === 'Gems');
 
     // Add a check in case the bot has gems but the item isn't found (e.g., race condition)
     if (!botGemItem) {
-        Helpers.client.chatMessage(senderID64, "I couldn't find my Gems right now. Please try again in a moment.");
-        Helpers.logError('[SellTF Handler] Bot has gems, but could not find gem assetid.');
-        return;
-}
+      Helpers.client.chatMessage(senderID64, "I couldn't find my Gems right now. Please try again in a moment.");
+      Helpers.logError('[SellTF Handler] Bot has gems, but could not find gem assetid.');
+      return;
+    }
 
     // Bot's Gem item
     const botItems = [{
-  appid: GEM_APP_ID,
-  contextid: GEM_CONTEXT_ID,
-  assetid: botGemItem.assetid, // Use the fresh assetid
-  amount: amountOfGems,
-}];
+      appid: GEM_APP_ID,
+      contextid: GEM_CONTEXT_ID,
+      assetid: botGemItem.assetid, // Use the fresh assetid
+      amount: amountOfGems,
+    }];
 
     // User's items
     const userItems = keysToSend;
