@@ -16,7 +16,7 @@ body:
     attributes:
       label: 1. File or Wiki Page Location
       description: Where exactly is the documentation you want to update? (e.g., README.md, Wiki page 'Configuration-Page', line 50)
-      placeholder: Wiki: Installation / Prerequisites
+      placeholder: "Wiki: Installation / Prerequisites"
     validations:
       required: true
 
