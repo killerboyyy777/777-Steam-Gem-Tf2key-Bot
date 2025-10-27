@@ -1,5 +1,5 @@
 name: 📖 Documentation / Wiki Update
-about: Suggest an improvement, fix a typo, or update the Wiki or README.
+description: Suggest an improvement, fix a typo, or update the Wiki or README.
 labels: ["documentation"]
 assignees: "killerboyyy777"
 title: "[DOCS]: Brief description of the documentation change"
