@@ -10,5 +10,24 @@
     "parserOptions": {
         "ecmaVersion": 11
     },
-    "rules": {}
+    "rules": {
+        "max-len": [
+            "error",
+            {
+                "code": 100,
+                "ignoreComments": true,
+                "ignoreStrings": true,
+                "ignoreTemplateLiterals": true,
+                "ignoreUrls": true
+            }
+        ],
+        "prefer-destructuring": "off",
+        "no-return-assign": "off",
+        "no-await-in-loop": "off",
+        "no-loop-func": "off",
+        "no-param-reassign": "off",
+        "no-plusplus": "off",
+        "consistent-return": "off",
+        "no-promise-executor-return": "off"
+    }
 }
