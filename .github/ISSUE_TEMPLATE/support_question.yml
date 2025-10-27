@@ -23,7 +23,7 @@ body:
     id: config-and-environment
     attributes:
       label: 2. Configuration & Environment Details
-      description: "This helps us troubleshoot common setup issues. Please provide:"
+      description: This helps us troubleshoot common setup issues. Please provide the following
       placeholder: |
         - Bot Version: v1.0.0
         - Node.js Version: v20.10.0
