@@ -1,10 +1,10 @@
 // -------------------------------------------------------------
-// Modified Version of Steam-Gem-Key-Bot
-// Original Author: mfw (https://steamcommunity.com/id/mfwBan)
-// Original License: GNU General Public License v3.0 (GPLv3)
+// 777-Steam-Gem-Tf2key-Bot
 //
-// Modifications and maintenance by killerboyyy777 (https://steamcommunity.com/id/klb777)
-// This script is part of the bot and is licensed under the GPLv3.
+// Inspired by work from: **mfw** (https://steamcommunity.com/id/ndevs)
+// Recoded and Maintained by: **killerboyyy777** (https://steamcommunity.com/id/klb777)
+// © 2025 killerboy777
+// Licensed under the GNU General Public License v3.0 (GPLv3).
 // -------------------------------------------------------------
 
 // Global Requires (Node.js/Steam Modules)
