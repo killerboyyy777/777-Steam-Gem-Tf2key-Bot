@@ -1,14 +1,14 @@
-name: 🐛 Bug Report
-about: Report a bug or an unexpected error in the Steam-Card-Bot-PRO.
+name: "🐛 Bug Report"
+about: "Report a bug or an unexpected error in the Steam-Card-Bot-PRO."
 labels: ["bug"]
-assignees: "killerboyyy777"
+assignees: ["killerboyyy777"]
 title: "[BUG]: Short description of the issue"
 
 body:
   - type: markdown
     attributes:
       value: |
-        ## Thank you for helping us!
+        ## Thank you for helping us! 🙏
         Please fill out this report clearly and completely. The more information you provide, the faster we can fix the issue.
 
   - type: textarea
