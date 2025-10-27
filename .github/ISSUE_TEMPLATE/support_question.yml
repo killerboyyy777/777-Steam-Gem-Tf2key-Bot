@@ -38,5 +38,5 @@ body:
     attributes:
       label: 3. What steps have you already taken?
       description: Have you checked the Wiki? What solutions have you tried already?
-      validations:
+    validations:
       required: false
