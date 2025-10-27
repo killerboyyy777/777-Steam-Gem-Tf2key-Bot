@@ -1,0 +1,39 @@
+name: 📖 Documentation / Wiki Update
+about: Suggest an improvement, fix a typo, or update the Wiki or README.
+labels: ["documentation"]
+assignees: "killerboyyy777"
+title: "[DOCS]: Brief description of the documentation change"
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Documentation Contribution
+        Thank you for helping us improve our documentation!
+
+  - type: input
+    id: location
+    attributes:
+      label: 1. File or Wiki Page Location
+      description: Where exactly is the documentation you want to update? (e.g., README.md, Wiki page 'Configuration-Page', line 50)
+      placeholder: Wiki: Installation / Prerequisites
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-content
+    attributes:
+      label: 2. Current Content (The problem)
+      description: Please paste the current text/code that needs to be changed.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-content
+    attributes:
+      label: 3. Suggested New Content (The solution)
+      description: Please provide the exact text or markdown you recommend as a replacement.
+      render: markdown
+    validations:
+      required: true
