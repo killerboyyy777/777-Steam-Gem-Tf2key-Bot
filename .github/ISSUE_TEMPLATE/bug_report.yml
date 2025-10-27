@@ -8,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## Thank you for helping us! 🙏
+        ## Thank you for helping us!
         Please fill out this report clearly and completely. The more information you provide, the faster we can fix the issue.
 
   - type: textarea
