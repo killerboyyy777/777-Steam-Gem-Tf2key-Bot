@@ -281,18 +281,18 @@ const main = async () => {
       // Check for EResult codes
       if (err.eresult) {
         switch (err.eresult) {
-          case 15: // k_EResultAccessDenied
-          case 16: // k_EResultInvalidAccount
+          case SteamUser.EResult.AccessDenied: // 15
+          case SteamUser.EResult.InvalidAccount: // 16
             userMessage = "I can't send you a trade. Is your inventory set to public?";
             break;
-          case 25: // k_EResultLimitExceeded
+          case SteamUser.EResult.LimitExceeded: // 25
             userMessage = 'It looks like your inventory is full. Please make space and try again.';
             break;
-          case 26: // k_EResultRevoked (often means trade ban or escrow)
+          case SteamUser.EResult.Revoked: // 26
             userMessage = 'There is an issue with your account (e.g., trade ban or escrow). I cannot send a trade.';
             break;
           default:
-            userMessage = `I received an unknown error from Steam (${err.eresult}). Please try again later.`;
+            userMessage = `I received an unknown error from Steam (${SteamUser.EResult[err.eresult] || err.eresult}). Please try again later.`;
             break;
         }
       }
