@@ -133,7 +133,7 @@ const loadBlacklist = async (config) => {
       log('[INIT] blacklist.json not found, starting with an empty blacklist.');
       config.Ignore_Msgs = [];
     } else {
-      logError(`[FATAL] Error loading blacklist: ${error.message}`);
+      logError(`[ERROR] Error loading blacklist: ${error.message}`);
       config.Ignore_Msgs = [];
     }
   }
