@@ -144,7 +144,7 @@ const saveBlacklist = async (config) => {
   try {
     await fs.writeFile(BLACKLIST_FILE, JSON.stringify(config.Ignore_Msgs, null, 2), 'utf8');
   } catch (error) {
-    logError(`[FATAL] Error saving blacklist: ${error.message}`);
+    logError(`[ERROR] Error saving blacklist: ${error.message}`);
   }
 };
 
