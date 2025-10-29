@@ -477,22 +477,6 @@ const main = async () => {
     }
   };
 
-  const updateBotGemAssetID = async (steamID) => {
-    try {
-      const inv = await getInventoryContentsAsync(steamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
-      const gemItem = inv.find((item) => item.name === 'Gems');
-
-      if (gemItem) {
-        GlobalBotInfo.botGemAssetID = gemItem.assetid;
-        log(`[INIT] Bot Gem AssetID updated: ${GlobalBotInfo.botGemAssetID}`);
-      } else {
-        log('[INIT] No gem stack found in the bot\'s inventory.');
-      }
-    } catch (error) {
-      logError(`[INIT] Failed to update bot gem assetID after retries: ${error.message}`);
-    }
-  };
-
   client.on('loggedOn', () => {
     client.getPersonas([client.steamID], () => {
       log('Successfully Logged Into Your Bot Account');
@@ -507,9 +491,6 @@ const main = async () => {
 
     // Populate GlobalBotInfo
     GlobalBotInfo.clientSteamID = client.steamID.getSteamID64();
-
-    // Update the Asset ID upon Web Session start
-    await updateBotGemAssetID(GlobalBotInfo.clientSteamID);
 
     // Define Dependencies after fetching GlobalBotInfo
     const Dependencies = {
