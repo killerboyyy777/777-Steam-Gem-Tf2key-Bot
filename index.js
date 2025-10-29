@@ -123,16 +123,19 @@ const checkConfig = () => {
 };
 
 // Load the Blacklist from the file.
-const loadBlacklist = (config) => {
+const loadBlacklist = async (config) => {
   try {
-    if (fs.existsSync(BLACKLIST_FILE)) {
-      const data = fs.readFileSync(BLACKLIST_FILE, 'utf8');
-      config.Ignore_Msgs = JSON.parse(data);
-      log(`[INIT] Loaded ${config.Ignore_Msgs.length} entries from blacklist.`);
-    }
+    const data = await fs.readFile(BLACKLIST_FILE, 'utf8');
+    config.Ignore_Msgs = JSON.parse(data);
+    log(`[INIT] Loaded ${config.Ignore_Msgs.length} entries from blacklist.`);
   } catch (error) {
-    logError(`[FATAL] Error loading blacklist: ${error.message}`);
-    config.Ignore_Msgs = [];
+    if (error.code === 'ENOENT') {
+      log('[INIT] blacklist.json not found, starting with an empty blacklist.');
+      config.Ignore_Msgs = [];
+    } else {
+      logError(`[FATAL] Error loading blacklist: ${error.message}`);
+      config.Ignore_Msgs = [];
+    }
   }
 };
 
@@ -145,7 +148,7 @@ const saveBlacklist = async (config) => {
   }
 };
 
-const main = () => {
+const main = async () => {
   // Run the check before initializing other components
   checkConfig();
 
@@ -225,7 +228,16 @@ const main = () => {
 
   // --- CORE TRADE LOGIC ---
 
-  // Sends a structured trade offer after checking for holds and items.
+  /**
+   * Sends a structured trade offer after checking for holds and items.
+   * @param {string} senderID64 - The SteamID64 of the user to send the offer to.
+   * @param {number} keyAmount - The number of TF2 keys being traded.
+   * @param {number} gemAmount - The number of gems being traded.
+   * @param {object[]} botItems - An array of item objects for the bot's side of the trade.
+   * @param {object[]} userItems - An array of item objects for the user's side of the trade.
+   * @param {string} message - The message to include with the trade offer.
+   * @returns {Promise<boolean>} True if the offer was sent successfully, false otherwise.
+   */
   const sendTradeOffer = async (senderID64, keyAmount, gemAmount, botItems, userItems, message) => {
     const t = manager.createOffer(senderID64);
 
@@ -445,7 +457,7 @@ const main = () => {
   }, 1000);
 
   // Load Blacklist on startup
-  loadBlacklist(CONFIG);
+  await loadBlacklist(CONFIG);
 
   // Function to update the bot's "playing" status with the current gem count
   const updatePlayingStatus = async () => {
