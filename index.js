@@ -6,12 +6,12 @@
 // © 2025 killerboy777
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // -------------------------------------------------------------
-// index.js
+
 const SteamUser = require('steam-user');
 const SteamCommunity = require('steamcommunity');
 const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamTotp = require('steam-totp');
-const fs = require('fs');
+const fs = require('fs').promises;
 const util = require('util');
 
 // --- Global Constants and Setup ---
@@ -29,10 +29,9 @@ const GEM_CONTEXT_ID = 6;
 const BLACKLIST_FILE = 'blacklist.json';
 const SID64REGEX = /^[0-9]{17}$/;
 
-// NEU: Global Bot Info structure
+// Global Bot Info
 const GlobalBotInfo = {
   clientSteamID: null,
-  botGemAssetID: null,
   userMsgs: {},
 };
 
@@ -124,32 +123,36 @@ const checkConfig = () => {
 };
 
 // Load the Blacklist from the file.
-const loadBlacklist = (config) => {
+const loadBlacklist = async (config) => {
   try {
-    if (fs.existsSync(BLACKLIST_FILE)) {
-      const data = fs.readFileSync(BLACKLIST_FILE, 'utf8');
-      config.Ignore_Msgs = JSON.parse(data);
-      log(`[INIT] Loaded ${config.Ignore_Msgs.length} entries from blacklist.`);
-    }
+    const data = await fs.readFile(BLACKLIST_FILE, 'utf8');
+    config.Ignore_Msgs = JSON.parse(data);
+    log(`[INIT] Loaded ${config.Ignore_Msgs.length} entries from blacklist.`);
   } catch (error) {
-    logError(`[FATAL] Error loading blacklist: ${error.message}`);
-    config.Ignore_Msgs = [];
+    if (error.code === 'ENOENT') {
+      log('[INIT] blacklist.json not found, starting with an empty blacklist.');
+      config.Ignore_Msgs = [];
+    } else {
+      logError(`[ERROR] Error loading blacklist: ${error.message}`);
+      config.Ignore_Msgs = [];
+    }
   }
 };
 
 // Save the Blacklist to the file.
-const saveBlacklist = (config) => {
+const saveBlacklist = async (config) => {
   try {
-    fs.writeFileSync(BLACKLIST_FILE, JSON.stringify(config.Ignore_Msgs, null, 2), 'utf8');
+    await fs.writeFile(BLACKLIST_FILE, JSON.stringify(config.Ignore_Msgs, null, 2), 'utf8');
   } catch (error) {
-    logError(`[FATAL] Error saving blacklist: ${error.message}`);
+    logError(`[ERROR] Error saving blacklist: ${error.message}`);
   }
 };
 
-const main = () => {
+const main = async () => {
   // Run the check before initializing other components
   checkConfig();
 
+  // --- Steam Client and TradeOfferManager Setup ---
   const client = new SteamUser();
   const manager = new TradeOfferManager({
     language: 'en',
@@ -194,26 +197,6 @@ const main = () => {
 
   const getUserCommunityInvAsync = util.promisify(community.getUserInventoryContents).bind(community);
 
-  // Function to fetch and save the Bot's Gem Asset ID
-  const updateBotGemAssetID = async (clientSteamID) => {
-    try {
-      // Uses the retried inventory fetch
-      const userGemInv = await getInventoryContentsAsync(clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
-      const botGemItem = userGemInv.find((item) => item.name === 'Gems');
-
-      if (botGemItem) {
-        GlobalBotInfo.botGemAssetID = botGemItem.assetid;
-        log(`[INFO] Successfully updated Bot Gem Asset ID: ${botGemItem.assetid}`);
-      } else {
-        GlobalBotInfo.botGemAssetID = null;
-        logError('[FATAL] Bot has no Gems in inventory. Cannot sell gems.');
-      }
-    } catch (err) {
-      logError(`[FATAL] Error updating Bot Gem Asset ID after retries: ${err.message}`);
-      GlobalBotInfo.botGemAssetID = null;
-    }
-  };
-
   // --- MARKET GRIND HELPER (For AutoGem) ---
   /**
      * Executes the Steam Market Grind to convert an item to gems.
@@ -221,6 +204,7 @@ const main = () => {
      * @param {object} item - The item to grind.
      * @returns {Promise<object>} The HTTP response object.
      */
+
   const grindItemToGoo = (sessionID, item) => new Promise((resolve, reject) => {
     community.httpRequestPost(
       {
@@ -245,8 +229,15 @@ const main = () => {
   // --- CORE TRADE LOGIC ---
 
   /**
-     * Sends a structured trade offer after checking for holds and items.
-     */
+   * Sends a structured trade offer after checking for holds and items.
+   * @param {string} senderID64 - The SteamID64 of the user to send the offer to.
+   * @param {number} keyAmount - The number of TF2 keys being traded.
+   * @param {number} gemAmount - The number of gems being traded.
+   * @param {object[]} botItems - An array of item objects for the bot's side of the trade.
+   * @param {object[]} userItems - An array of item objects for the user's side of the trade.
+   * @param {string} message - The message to include with the trade offer.
+   * @returns {Promise<boolean>} True if the offer was sent successfully, false otherwise.
+   */
   const sendTradeOffer = async (senderID64, keyAmount, gemAmount, botItems, userItems, message) => {
     const t = manager.createOffer(senderID64);
 
@@ -283,17 +274,35 @@ const main = () => {
       log(`[Trade Sent] Offer for ${keyAmount} Keys sent to ${senderID64}`);
       return true;
     } catch (err) {
-      // Handle common errors like inventory refresh or failed send
       logError(`[Trade Failed] Error sending offer to ${senderID64}: ${err.message}`);
-      client.chatMessage(
-        senderID64,
-        'An error occurred while preparing or sending the trade. Please try again in a few seconds.',
-      );
+
+      let userMessage = 'An error occurred while preparing or sending the trade. Please try again in a few seconds.';
+
+      // Check for EResult codes
+      if (err.eresult) {
+        switch (err.eresult) {
+          case SteamUser.EResult.AccessDenied: // 15
+          case SteamUser.EResult.InvalidAccount: // 16
+            userMessage = "I can't send you a trade. Is your inventory set to public?";
+            break;
+          case SteamUser.EResult.LimitExceeded: // 25
+            userMessage = 'It looks like your inventory is full. Please make space and try again.';
+            break;
+          case SteamUser.EResult.Revoked: // 26
+            userMessage = 'There is an issue with your account (e.g., trade ban or escrow). I cannot send a trade.';
+            break;
+          default:
+            userMessage = `I received an unknown error from Steam (${SteamUser.EResult[err.eresult] || err.eresult}). Please try again later.`;
+            break;
+        }
+      }
+
+      client.chatMessage(senderID64, userMessage);
       return false;
     }
   };
 
-  // Placeholder for commentUser
+  // Comments on user profile after trade
   const commentUser = (steamID64) => {
     if (CONFIG.Comment_After_Trade) {
       community.postUserComment(steamID64, CONFIG.Comment_After_Trade, (err) => {
@@ -306,9 +315,7 @@ const main = () => {
     }
   };
 
-  /**
-     * Processes incoming trade offers by checking type and calling tradeLogic handlers.
-     */
+  // Processes incoming trade offers by checking type and calling tradeLogic handlers.
   const processTradeOffer = (offer) => {
     const partnerID = offer.partner.getSteamID64();
 
@@ -373,7 +380,7 @@ const main = () => {
   };
 
   /* eslint-disable no-promise-executor-return */
-  // Converts unwanted items to gems based on the Convert_To_Gems config
+  // Converts unwanted items to gems
   const autoGemItems = async () => {
     try {
       log('[AutoGem] Checking inventory for items to convert...');
@@ -437,7 +444,7 @@ const main = () => {
           "Sorry but we do not like spamming. You've been removed!",
         );
         client.removeFriend(steamID);
-        // Notify Owners using forEach as well
+        // Notify Owners
         CONFIG.Owner.forEach((ownerID) => {
           client.chatMessage(
             ownerID,
@@ -450,7 +457,7 @@ const main = () => {
   }, 1000);
 
   // Load Blacklist on startup
-  loadBlacklist(CONFIG);
+  await loadBlacklist(CONFIG);
 
   // Function to update the bot's "playing" status with the current gem count
   const updatePlayingStatus = async () => {
@@ -484,9 +491,6 @@ const main = () => {
 
     // Populate GlobalBotInfo
     GlobalBotInfo.clientSteamID = client.steamID.getSteamID64();
-
-    // Update the Asset ID upon Web Session start
-    await updateBotGemAssetID(GlobalBotInfo.clientSteamID);
 
     // Define Dependencies after fetching GlobalBotInfo
     const Dependencies = {
@@ -551,6 +555,7 @@ const main = () => {
     }
   });
 
+  // Code to accept trade confirmations
   community.on('newConfirmation', (CONF) => {
     log('## New confirmation.');
     community.acceptConfirmationForObject(
@@ -568,6 +573,7 @@ const main = () => {
     );
   });
 
+  // Detects new trade offers and processes them
   manager.on('newOffer', (offer) => {
     offer.getUserDetails((errDetails) => {
       if (errDetails) {
@@ -648,7 +654,7 @@ const main = () => {
                 client.chatMessage(steamID64, 'An admin cannot be blocked.');
               } else {
                 CONFIG.Ignore_Msgs.push(targetID);
-                saveBlacklist(CONFIG);
+                await saveBlacklist(CONFIG);
                 client.chatMessage(steamID64, `User ${targetID} blocked and saved to blacklist.`);
                 log(`[Admin] User ${targetID} was blocked by ${steamID64}.`);
               }
@@ -663,7 +669,7 @@ const main = () => {
             if (SID64REGEX.test(targetID)) {
               CONFIG.Ignore_Msgs = CONFIG.Ignore_Msgs.filter((id) => id !== targetID);
               if (CONFIG.Ignore_Msgs.length < initialLength) {
-                saveBlacklist(CONFIG);
+                await saveBlacklist(CONFIG);
                 client.chatMessage(steamID64, `User ${targetID} unblocked and removed from blacklist.`);
                 log(`[Admin] User ${targetID} was unblocked by ${steamID64}.`);
               } else {
@@ -729,7 +735,7 @@ const main = () => {
         case '!INFO': {
           client.chatMessage(
             steamID64,
-            'Bot owned by https://steamcommunity.com/id/klb777\nUse !help to see all Commands',
+            `777-Steam-Gem-Tf2key-Bot v${VERSION}\nI trade TF2 Keys for Gems and other items.\nCreated by: https://steamcommunity.com/id/klb777\nType !prices to see rates or !help for all commands.`,
           );
           break;
         }

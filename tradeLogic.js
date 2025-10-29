@@ -1,9 +1,7 @@
-// tradeLogic.js
 // This module contains the logic for all Gem-related trades (TF2 Keys, Backgrounds, Emotes).
 
 // Internal variables to store helper functions and global bot info
 let Helpers = {};
-// CRITICAL FIX: Renamed to hold the live reference from index.js
 let GlobalBotInfoRef = {};
 let configRef = {};
 const TF2_APP_ID = 440;
@@ -93,8 +91,18 @@ const handleSellTF = async (senderID64, args) => {
   const amountOfGems = n * configRef.Rates.SELL.TF2_To_Gems;
 
   try {
-    // 1. Check Bot's Gems (Uses GlobalBotInfoRef)
-    const botGems = await Helpers.getInventoryGems(GlobalBotInfoRef.clientSteamID);
+    // 1. Check Bot's Gems (fetch inventory once)
+    const botGemInv = await Helpers.getInventoryContentsAsync(GlobalBotInfoRef.clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
+    const botGemItem = botGemInv.find((item) => item.name === 'Gems');
+
+    // Check if the bot has a gem item/stack at all
+    if (!botGemItem) {
+      Helpers.client.chatMessage(senderID64, "I couldn't find my Gems right now. Please try again in a moment.");
+      Helpers.logError('[SellTF Handler] Bot has no gem item/stack.');
+      return;
+    }
+
+    const botGems = botGemItem.amount;
 
     if (botGems < amountOfGems) {
       const sellableKeys = Math.floor(
@@ -126,11 +134,11 @@ const handleSellTF = async (senderID64, args) => {
     // 3. Prepare Items
     const keysToSend = userKeys.slice(0, n);
 
-    // Bot's Gem item (Uses GlobalBotInfoRef)
+    // Bot's Gem item
     const botItems = [{
       appid: GEM_APP_ID,
       contextid: GEM_CONTEXT_ID,
-      assetid: GlobalBotInfoRef.botGemAssetID,
+      assetid: botGemItem.assetid, // Use the fresh assetid
       amount: amountOfGems,
     }];
 
@@ -313,7 +321,7 @@ const buyBgsAndEmotes = async (offer) => {
     return;
   }
 
-  // 5. Secondary check for the bot's current Gem stock (for robustness) (Uses GlobalBotInfoRef)
+  // 5. Secondary check for the bot's current Gem stock (for robustness)
   try {
     const currentBotGems = await Helpers.getInventoryGems(GlobalBotInfoRef.clientSteamID);
     if (currentBotGems < calculatedGems) {

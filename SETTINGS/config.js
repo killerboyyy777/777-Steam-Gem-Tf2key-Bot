@@ -7,7 +7,6 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // -------------------------------------------------------------
 
-
 module.exports = {
   // Steam Account Credentials
   USERNAME: '',
