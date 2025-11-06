@@ -26,7 +26,24 @@ To start and use the Bot, follow these steps:
 3. **Execute `install.bat`** (This will install all required node.js Dependencies.)
 
 ### 2. Configuration
-Read the Instructions in the **"Tutorial"** Folder.
+Read the Instructions in the **"Tutorial"** Folder or follow the steps below:
+
+1.  Navigate to the `SETTINGS` folder.
+2.  Open the `config.js` file with a text editor.
+3.  Fill in your Steam account credentials (`USERNAME`, `PASSWORD`, `SHAREDSECRET`, `IDENTITYSECRET`).
+4.  Set your SteamID64 in the `Owner` array.
+5.  Customize the trading rates and other settings to your liking.
+
+---
+
+## 🤖 Bot Features
+
+*   **Automatic Trading:** Trades Gems, TF2 Keys, Emotes, and Profile Backgrounds automatically.
+*   **Configurable Pricing:** Easily configure your own pricing rates for all items.
+*   **Admin Commands:** Manage the bot with admin commands, including profit checking, user blocking, and broadcasting messages.
+*   **Spam Protection:** Automatically blocks users who spam the bot with messages.
+*   **Automatic Item Conversion:** Automatically converts items to gems based on your configured value.
+*   **Caching:** Caches inventories and user profiles to reduce Steam API calls and improve performance.
 
 ---
 
@@ -58,8 +75,26 @@ Read the Instructions in the **"Tutorial"** Folder.
 
 ### Automated Features (Emotes/Backgrounds)
 
-* Will accept Offers trading Emotes/Backgrounds for Gems (Buying and Selling) that Match or are better than the configured Value.
-* Will gem all Emotes and Backgrounds worth more than the configured Gem Value on Bot Start and once per Week.
+*   **Automatic Trading:** The bot will automatically accept trade offers for emotes and backgrounds that match the configured prices. It can both buy and sell these items for gems.
+*   **Automatic Gem Conversion:** The bot will automatically convert items to gems if their gem value is higher than the configured `Convert_To_Gems` value. This process runs on startup and then once a week.
+*   **Caching:** The bot caches inventories and user profiles to reduce the number of requests made to the Steam API. This improves performance and avoids API rate limits.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! If you want to improve this bot, please feel free to fork the repository and submit a pull request.
+
+### Bug Reports & Feature Requests
+
+Please open an issue on the [GitHub repository](https://github.com/killerboyyy777/777-Steam-Gem-Tf2key-Bot/issues) for any bug reports or feature requests.
+
+### Pull Requests
+
+1.  Fork the repository.
+2.  Create a new branch for your feature or bug fix.
+3.  Make your changes.
+4.  Submit a pull request with a clear description of your changes.
 
 ---
 
@@ -80,7 +115,7 @@ Every contribution is highly appreciated!
 
 📜 License
 
-This project is licensed under the GNU General Public License v3.0 (GPLv3).
+This project is licensed under the [GNU General Public License v3.0 (GPLv3)](LICENSE).
 
 Inspired by work from mfw (https://steamcommunity.com/id/ndevs).
-Recoded and Maintained © 2025 killerboy777 (https://steamcommunity.com/id/klb777).
+Recoded and Maintained © 2025 killerboyyy777 (https://steamcommunity.com/id/klb777).
