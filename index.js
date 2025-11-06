@@ -30,7 +30,7 @@ const BLACKLIST_FILE = 'blacklist.json';
 const SID64REGEX = /^[0-9]{17}$/;
 
 // Global Bot Info
-const global = {
+const botState = {
   bot: {
     inventory: {},
     gemCount: 0,
