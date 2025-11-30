@@ -12,7 +12,7 @@ const SteamCommunity = require('steamcommunity');
 const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamTotp = require('steam-totp');
 const fs = require('fs').promises;
-const util = require('util');
+
 
 // --- Global Constants and Setup ---
 const CONFIG = require('./SETTINGS/config');
@@ -20,7 +20,7 @@ const tradeLogic = require('./tradeLogic');
 const packageJson = require('./package.json');
 
 const VERSION = packageJson.version;
-const LOG_FILE = 'bot_activity.log';
+
 
 const TF2_APP_ID = 440;
 const TF2_CONTEXT_ID = 2;
