@@ -851,8 +851,7 @@ const main = async () => {
 
               client.chatMessage(
                 steamID64,
-                `You have:\n\n${inventory.tf2Keys} TF2 Keys\n${tf2Msg}\n`
-                                + `You have:\n\n${inventory.gemCount} Gems ${gemsMsg}`,
+                `You have:\n\n- ${inventory.tf2Keys} TF2 Keys\n${tf2Msg}\n\n- ${inventory.gemCount} Gems\n${gemsMsg}`,
               );
             } catch (err) {
               logError('[!CHECK] Error loading user inventory after retries:', err.message);
