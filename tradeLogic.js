@@ -1,9 +1,7 @@
-// tradeLogic.js
 // This module contains the logic for all Gem-related trades (TF2 Keys, Backgrounds, Emotes).
 
 // Internal variables to store helper functions and global bot info
 let Helpers = {};
-// CRITICAL FIX: Renamed to hold the live reference from index.js
 let GlobalBotInfoRef = {};
 let configRef = {};
 const TF2_APP_ID = 440;
@@ -39,19 +37,30 @@ const getGemValue = (item) => {
         || name.includes('booster')
         || name.includes('gems');
 
-  if (!isEmoteOrBG || skip || !Array.isArray(item.descriptions)) {
+  if (!isEmoteOrBG || skip) {
     return 0;
   }
 
-  // Find the description line containing the gem value
-  const gemInfo = item.descriptions.find((d) => d.value?.includes('This item is worth:'));
-  if (!gemInfo) {
-    return 0;
+  if (item.owner_actions && Array.isArray(item.owner_actions)) {
+    const turnIntoGemsAction = item.owner_actions.find(a => a.name === 'Turn into Gems...');
+    if (turnIntoGemsAction && turnIntoGemsAction.link) {
+      const match = turnIntoGemsAction.link.match(/GetGooValue\(\s*'%contextid%',\s*'%assetid%',\s*\d+,\s*(\d+),\s*\d+\s*\)/);
+      if (match && match[1]) {
+        return parseInt(match[1], 10);
+      }
+    }
   }
 
-  // Extract the numeric gem value
-  const match = gemInfo.value.match(/(\d+)\s*Gems?/i);
-  return match ? parseInt(match[1], 10) : 0;
+  // Fallback to the old method, just in case
+  if (Array.isArray(item.descriptions)) {
+    const gemInfo = item.descriptions.find((d) => d.value?.includes('This item is worth:'));
+    if (gemInfo) {
+      const match = gemInfo.value.match(/(\d+)\s*Gems?/i);
+      return match ? parseInt(match[1], 10) : 0;
+    }
+  }
+
+  return 0;
 };
 
 /**
@@ -93,8 +102,18 @@ const handleSellTF = async (senderID64, args) => {
   const amountOfGems = n * configRef.Rates.SELL.TF2_To_Gems;
 
   try {
-    // 1. Check Bot's Gems (Uses GlobalBotInfoRef)
-    const botGems = await Helpers.getInventoryGems(GlobalBotInfoRef.clientSteamID);
+    // 1. Check Bot's Gems (fetch inventory once)
+    const botGemInv = await Helpers.getInventoryContentsAsync(GlobalBotInfoRef.clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
+    const botGemItem = botGemInv.find((item) => item.name === 'Gems');
+
+    // Check if the bot has a gem item/stack at all
+    if (!botGemItem) {
+      Helpers.client.chatMessage(senderID64, "I couldn't find my Gems right now. Please try again in a moment.");
+      Helpers.logError('[SellTF Handler] Bot has no gem item/stack.');
+      return;
+    }
+
+    const botGems = botGemItem.amount;
 
     if (botGems < amountOfGems) {
       const sellableKeys = Math.floor(
@@ -126,11 +145,11 @@ const handleSellTF = async (senderID64, args) => {
     // 3. Prepare Items
     const keysToSend = userKeys.slice(0, n);
 
-    // Bot's Gem item (Uses GlobalBotInfoRef)
+    // Bot's Gem item
     const botItems = [{
       appid: GEM_APP_ID,
       contextid: GEM_CONTEXT_ID,
-      assetid: GlobalBotInfoRef.botGemAssetID,
+      assetid: botGemItem.assetid, // Use the fresh assetid
       amount: amountOfGems,
     }];
 
@@ -200,7 +219,9 @@ const handleBuyTF = async (senderID64, args) => {
     }
 
     // 2. Check User's Gems
-    const userGems = await Helpers.getInventoryGems(senderID64);
+    const userGemInv = await Helpers.getInventoryContentsAsync(senderID64, GEM_APP_ID, GEM_CONTEXT_ID, true);
+    const userGemItem = userGemInv.find((item) => item.name === 'Gems');
+    const userGems = userGemItem ? userGemItem.amount : 0;
 
     if (userGems < amountOfGems) {
       const buyableKeys = Math.floor(
@@ -216,11 +237,7 @@ const handleBuyTF = async (senderID64, args) => {
     // 3. Prepare Items
     const keysToGive = botKeys.slice(0, n);
 
-    // User's Gem item (needs their asset ID, which must be fetched)
-    const userGemInv = await Helpers.getInventoryContentsAsync(senderID64, GEM_APP_ID, GEM_CONTEXT_ID, true);
-    const userGemItem = userGemInv.find((item) => item.name === 'Gems');
-
-    if (!userGemItem || userGemItem.amount < amountOfGems) {
+    if (!userGemItem) {
       // This is a double-check, but helpful if inventory refreshed in between checks
       Helpers.client.chatMessage(senderID64, "I couldn't verify you have the required Gems right now. Please try again.");
       return;
@@ -313,9 +330,12 @@ const buyBgsAndEmotes = async (offer) => {
     return;
   }
 
-  // 5. Secondary check for the bot's current Gem stock (for robustness) (Uses GlobalBotInfoRef)
+  // 5. Secondary check for the bot's current Gem stock (for robustness)
   try {
-    const currentBotGems = await Helpers.getInventoryGems(GlobalBotInfoRef.clientSteamID);
+    const botGemInv = await Helpers.getInventoryContentsAsync(GlobalBotInfoRef.clientSteamID, GEM_APP_ID, GEM_CONTEXT_ID, true);
+    const botGemItem = botGemInv.find((item) => item.name === 'Gems');
+    const currentBotGems = botGemItem ? botGemItem.amount : 0;
+
     if (currentBotGems < calculatedGems) {
       Helpers.client.chatMessage(
         partnerID,
@@ -405,7 +425,10 @@ const sellBgsAndEmotes = async (offer) => {
 
   // 5. Secondary check for the user's current Gem stock (for robustness)
   try {
-    const currentUserGems = await Helpers.getInventoryGems(partnerID);
+    const userGemInv = await Helpers.getInventoryContentsAsync(partnerID, GEM_APP_ID, GEM_CONTEXT_ID, true);
+    const userGemItem = userGemInv.find((item) => item.name === 'Gems');
+    const currentUserGems = userGemItem ? userGemItem.amount : 0;
+
     if (currentUserGems < calculatedGems) {
       Helpers.client.chatMessage(
         partnerID,

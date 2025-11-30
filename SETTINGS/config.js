@@ -1,12 +1,11 @@
-// -------------------------------------------------------------
+// ------------------------------------------------------------- 
 // 777-Steam-Gem-Tf2key-Bot
 //
 // Inspired by work from: **mfw** (https://steamcommunity.com/id/ndevs)
 // Recoded and Maintained by: **killerboyyy777** (https://steamcommunity.com/id/klb777)
-// © 2025 killerboy777
+// © 2025 killerboyyy777
 // Licensed under the GNU General Public License v3.0 (GPLv3).
-// -------------------------------------------------------------
-
+// ------------------------------------------------------------- 
 
 module.exports = {
   // Steam Account Credentials
@@ -19,7 +18,7 @@ module.exports = {
   STEAMAPIKEY: '',
 
   MAXMSGPERSEC: 3, // Max messages allowed per second before user is blocked
-  Owner: ['', ''], // [Bot SteamID64, Admin SteamID64, ...]
+  Owner: ['', ''], // [Admin SteamID64, ...]
   Comment_After_Trade: '+Rep! Thanks for Trading with me!', // Comment to post after a successful trade (empty string if none)
   Ignore_Msgs: [], // SteamIDs of users/bots to ignore messages and trade offers from
 
@@ -41,6 +40,8 @@ module.exports = {
     MaxSell: 50, // Max TF2 keys user can sell to bot in one trade
     MaxBuy: 50, // Max TF2 keys user can buy from bot in one trade
     Convert_To_Gems: 20, // Minimum gem value for an item to be automatically converted to gems
+    CACHE_DURATION_MINUTES: 10, // Duration to cache inventories in minutes
+    CACHE_USER_PROFILE_DURATION_HOURS: 24, // Duration to cache user profiles in hours
     ItemsNotForTrade: [ // List names of items here to prevent them from being traded by the bot
       ':cleancake:',
       ':cleankey:',
