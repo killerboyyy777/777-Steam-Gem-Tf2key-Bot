@@ -1,3 +1,5 @@
+#THIS REPOSITORY IS OUTDATED AND CURRENTLY NOT IN A WORKING STATE DUE TO BREAKING STEAM CHANGES
+
 # Steam-Gem-Key-Bot
 
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green?logo=node.js)](https://nodejs.org/)
